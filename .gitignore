@@ -18,3 +18,7 @@ Thumbs.db
 # Node
 node_modules/
 .env
+
+# Local SQLite DBs used for development
+src/backend/*.db
+*.db
