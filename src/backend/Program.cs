@@ -24,7 +24,10 @@ else
 }
 
 // JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "dev-please-change-this-key";
+// NOTE: HS256 requires a sufficiently long symmetric key (>= 256 bits).
+// Use configuration (environment variable Jwt__Key) in production. For local
+// development we provide a long default so token signing does not throw.
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "dev-local-key-please-change-to-a-secure-secret-with-at-least-32-bytes!";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "journalai";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "journalai-users";
 
