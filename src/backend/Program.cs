@@ -47,7 +47,13 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtIssuer,
         ValidAudience = jwtAudience,
-        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtKey))
+        // Ensure the signing key is at least 256 bits; if the provided key string is shorter
+        // derive a 256-bit key by hashing with SHA256 so HS256 can operate.
+        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+            System.Text.Encoding.UTF8.GetBytes(jwtKey).Length >= 32
+                ? System.Text.Encoding.UTF8.GetBytes(jwtKey)
+                : System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(jwtKey))
+        )
     };
 });
 

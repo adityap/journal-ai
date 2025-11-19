@@ -59,7 +59,7 @@ public class AuthController : ControllerBase
 
     private string GenerateToken(User user)
     {
-        var key = _config["Jwt:Key"] ?? "dev-please-change-this-key";
+        var key = _config["Jwt:Key"] ?? "dev-local-key-please-change-to-a-secure-secret-with-at-least-32-bytes!";
         var issuer = _config["Jwt:Issuer"] ?? "journalai";
         var audience = _config["Jwt:Audience"] ?? "journalai-users";
 
@@ -68,7 +68,13 @@ public class AuthController : ControllerBase
             new Claim(JwtRegisteredClaimNames.UniqueName, user.Username)
         };
 
-        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+        var keyBytes = Encoding.UTF8.GetBytes(key);
+        if (keyBytes.Length < 32)
+        {
+            keyBytes = System.Security.Cryptography.SHA256.HashData(keyBytes);
+        }
+
+        var signingKey = new SymmetricSecurityKey(keyBytes);
         var creds = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
