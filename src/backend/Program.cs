@@ -12,7 +12,7 @@ var isDev = builder.Environment.IsDevelopment();
 if (isDev)
 {
     // Use a local file SQLite DB for development so migrations and local runs don't need Postgres
-    var sqliteConnection = builder.Configuration.GetConnectionString("SqliteDev") ?? "Data Source=src/backend/journalai-dev.db";
+    var sqliteConnection = builder.Configuration.GetConnectionString("SqliteDev") ?? "Data Source=journalai-dev.db";
     builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(sqliteConnection));
 }
 else
