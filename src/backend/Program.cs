@@ -64,8 +64,6 @@ if (app.Environment.IsDevelopment())
         SeedData.EnsureSeedData(db);
     }
 }
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-app.MapControllers();
 
 app.UseAuthentication();
 app.UseAuthorization();
