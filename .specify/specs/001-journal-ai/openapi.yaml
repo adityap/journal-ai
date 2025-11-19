@@ -1,0 +1,208 @@
+openapi: 3.0.3
+info:
+  title: Journal AI API
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api/v1
+paths:
+  /entries:
+    post:
+      summary: Create a journal entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntryCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entry'
+    get:
+      summary: List journal entries
+      parameters:
+        - in: query
+          name: start
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: end
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: category
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EntryListItem'
+
+  /entries/{id}:
+    get:
+      summary: Get entry (requires unlock for private)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entry'
+    patch:
+      summary: Update entry (only same-day editable)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntryUpdate'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete entry (only same-day deletable)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+
+  /unlock:
+    post:
+      summary: Unlock a private entry for the session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                entry_id:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Unlocked (session token)
+
+  /export:
+    post:
+      summary: Create export job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scope:
+                  type: object
+                format:
+                  type: string
+                  enum: [json, md, zip]
+      responses:
+        '202':
+          description: Accepted
+
+  /mindmap:
+    get:
+      summary: Generate mindmap
+      parameters:
+        - in: query
+          name: scope
+          schema:
+            type: string
+            enum: [category, entry, user]
+        - in: query
+          name: id
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Graph JSON
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  schemas:
+    EntryCreate:
+      type: object
+      properties:
+        title:
+          type: string
+        body_text:
+          type: string
+        category_id:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        confidentiality:
+          type: string
+          enum: [public, private]
+    EntryUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        body_text:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+    EntryListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        locked:
+          type: boolean
+    Entry:
+      allOf:
+        - $ref: '#/components/schemas/EntryListItem'
+        - type: object
+          properties:
+            title:
+              type: string
+            body_text:
+              type: string
+            media:
+              type: array
+              items:
+                type: object
+            confidentiality:
+              type: string
+              enum: [public, private]

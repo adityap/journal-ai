@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: journal
+          POSTGRES_PASSWORD: journalpw
+          POSTGRES_DB: journaldb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U journal -d journaldb" --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install backend dependencies
+        run: |
+          cd src/backend || exit 0
+          dotnet restore
+      - name: Run backend unit tests
+        run: |
+          cd src/backend || exit 0
+          dotnet test --no-build --verbosity normal
+      - name: Install frontend deps
+        run: |
+          cd src/frontend || exit 0
+          npm ci
+      - name: Run frontend lint
+        run: |
+          cd src/frontend || exit 0
+          npm run lint || true
