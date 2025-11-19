@@ -1,0 +1,9 @@
+C:\Users\aditya.poddar.1\OneDrive - Cotiviti\01-Aditya\GIT-Projects\journal-ai\src\backend\obj\Debug\net8.0\JournalAI.csproj.AssemblyReference.cache
+C:\Users\aditya.poddar.1\OneDrive - Cotiviti\01-Aditya\GIT-Projects\journal-ai\src\backend\obj\Debug\net8.0\rpswa.dswa.cache.json
+C:\Users\aditya.poddar.1\OneDrive - Cotiviti\01-Aditya\GIT-Projects\journal-ai\src\backend\obj\Debug\net8.0\JournalAI.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\aditya.poddar.1\OneDrive - Cotiviti\01-Aditya\GIT-Projects\journal-ai\src\backend\obj\Debug\net8.0\JournalAI.AssemblyInfoInputs.cache
+C:\Users\aditya.poddar.1\OneDrive - Cotiviti\01-Aditya\GIT-Projects\journal-ai\src\backend\obj\Debug\net8.0\JournalAI.AssemblyInfo.cs
+C:\Users\aditya.poddar.1\OneDrive - Cotiviti\01-Aditya\GIT-Projects\journal-ai\src\backend\obj\Debug\net8.0\JournalAI.csproj.CoreCompileInputs.cache
+C:\Users\aditya.poddar.1\OneDrive - Cotiviti\01-Aditya\GIT-Projects\journal-ai\src\backend\obj\Debug\net8.0\JournalAI.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\aditya.poddar.1\OneDrive - Cotiviti\01-Aditya\GIT-Projects\journal-ai\src\backend\obj\Debug\net8.0\JournalAI.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\aditya.poddar.1\OneDrive - Cotiviti\01-Aditya\GIT-Projects\journal-ai\src\backend\obj\Debug\net8.0\JournalAI.sourcelink.json

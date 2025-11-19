@@ -7,9 +7,9 @@ Quickstart:
 1. Ensure .NET 8 SDK is installed.
 2. From repository root run:
 
-3. ```powershell
+```powershell
 dotnet build src/backend/JournalAI.csproj
 dotnet run --project src/backend/JournalAI.csproj
 ```
 
-nThe API will expose a health endpoint at `/health` and a simple `api/entries` controller.
+The API will expose a health endpoint at `/health` and a simple `api/entries` controller.

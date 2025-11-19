@@ -11,14 +11,14 @@ public class EntriesController : ControllerBase
     private readonly AppDbContext _db;
     public EntriesController(AppDbContext db) => _db = db;
 
-n    [HttpGet]
+    [HttpGet]
     public IActionResult GetAll()
     {
         var entries = _db.Entries.Take(50).ToList();
         return Ok(entries);
     }
 
-n    [HttpPost]
+    [HttpPost]
     public IActionResult Create([FromBody] Entry e)
     {
         e.Id = Guid.NewGuid();
@@ -29,7 +29,7 @@ n    [HttpPost]
         return CreatedAtAction(nameof(GetById), new { id = e.Id }, e);
     }
 
-n    [HttpGet("{id}")]
+    [HttpGet("{id}")]
     public IActionResult GetById(Guid id)
     {
         var entry = _db.Entries.Find(id);
