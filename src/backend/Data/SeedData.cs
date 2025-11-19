@@ -13,10 +13,14 @@ public static class SeedData
             var user = new User
             {
                 Username = "devuser",
-                PasswordHash = "dev-placeholder-hash",
                 Timezone = "UTC",
                 NoTraining = true
             };
+
+            // Hash a default dev password (devpassword) for local development
+            var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
+            user.PasswordHash = hasher.HashPassword(user, "devpassword");
+
             db.Users.Add(user);
 
             var entry = new Entry

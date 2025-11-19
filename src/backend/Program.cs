@@ -23,6 +23,33 @@ else
     );
 }
 
+// JWT Authentication
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "dev-please-change-this-key";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "journalai";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "journalai-users";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtKey))
+    };
+});
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -37,6 +64,11 @@ if (app.Environment.IsDevelopment())
         SeedData.EnsureSeedData(db);
     }
 }
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapControllers();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapControllers();
