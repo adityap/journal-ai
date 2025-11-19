@@ -1,0 +1,2 @@
+# journal-ai
+Journaling Application
