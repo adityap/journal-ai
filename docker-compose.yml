@@ -1,0 +1,142 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14-alpine
+    container_name: journal-ai-postgres
+    environment:
+      POSTGRES_DB: journalai
+      POSTGRES_USER: journalai
+      POSTGRES_PASSWORD: journalai_dev_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U journalai -d journalai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - journal-ai-network
+
+  # MinIO (S3-compatible storage)
+  minio:
+    image: minio/minio:latest
+    container_name: journal-ai-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin_password
+    ports:
+      - "9000:9000"      # API
+      - "9001:9001"      # Console
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - journal-ai-network
+
+  # Redis (for queues, caching)
+  redis:
+    image: redis:7-alpine
+    container_name: journal-ai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - journal-ai-network
+
+  # ASP.NET Core Backend API
+  api:
+    build:
+      context: .
+      dockerfile: src/backend/Dockerfile
+    container_name: journal-ai-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5000
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=journalai;Username=journalai;Password=journalai_dev_password"
+      Minio__Endpoint: http://minio:9000
+      Minio__AccessKey: minioadmin
+      Minio__SecretKey: minioadmin_password
+      Minio__BucketName: journal-entries
+      Redis__ConnectionString: redis:6379
+      Jwt__SecretKey: "your-super-secret-jwt-key-change-in-production-at-least-32-chars"
+      Jwt__Issuer: journal-ai
+      Jwt__Audience: journal-ai-client
+      Jwt__ExpirationMinutes: 1440
+      AllowedOrigins: "http://localhost:5173,http://localhost:3000"
+      Logging__LogLevel__Default: Information
+      Logging__LogLevel__Microsoft: Warning
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src/backend:/app
+    networks:
+      - journal-ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: >
+      sh -c "
+        dotnet ef database update &&
+        dotnet run
+      "
+
+  # React Frontend (Vite dev server)
+  frontend:
+    build:
+      context: src/frontend
+      dockerfile: Dockerfile.dev
+    container_name: journal-ai-frontend
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: http://localhost:5000/api/v1
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    volumes:
+      - ./src/frontend:/app
+      - /app/node_modules
+    networks:
+      - journal-ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
+  minio_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  journal-ai-network:
+    driver: bridge

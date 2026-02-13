@@ -12,9 +12,14 @@ description: "Task list template for feature implementation"
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-## Format: `[ID] [P?] [Story] Description`
+## Format: `[ID] [P?] [TAGS] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
+- **[TAGS]**: Optional tags for task classification:
+  - `privacy-critical`: Affects data handling or confidentiality
+  - `test-gate`: Requires TDD compliance (>=80% coverage)
+  - `security-review`: Requires security review before merge
+  - `api-contract`: Changes public API; requires OpenAPI spec
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
 - Include exact file paths in descriptions
 

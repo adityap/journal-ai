@@ -7,18 +7,80 @@ GeneratedFiles/
 *.suo
 *.userosscache
 *.sln.docstates
+*.csproj.user
+*.vscode/
+launchSettings.json
 
 # Rider
 .idea/
+*.iml
 
 # OS
 Thumbs.db
 .DS_Store
+.AppleDouble
+.LSOverride
 
-# Node
+# Node / Frontend
 node_modules/
-.env
+.pnpm-store/
+dist/
+build/
+coverage/
+.turbo/
 
-# Local SQLite DBs used for development
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Database
 src/backend/*.db
 *.db
+*.sqlite
+*.sqlite3
+
+# Package managers
+*.lock
+package-lock.json
+yarn.lock
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+jest-coverage/
+
+# Build outputs
+dist/
+build/
+publish/
+.next/
+out/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Misc
+.DS_Store
+*.pem
+*.key
+*.crt
+.tmp/
+temp/

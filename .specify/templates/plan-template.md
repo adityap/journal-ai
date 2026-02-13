@@ -27,11 +27,17 @@
 **Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
 **Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
-## Constitution Check
+## Constitution Check *(Journal AI v1.1.0)*
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+**Required Checks**:
+- [ ] Privacy Declaration complete? (if feature handles user data)
+- [ ] Error response schema documented? (for all API endpoints)
+- [ ] TDD gate: test coverage >=80% unit planned?
+- [ ] Rate-limiting specs included? (for API endpoints)
+- [ ] Audit logging for all mutations planned?
+- [ ] Encryption at rest & in transit spec included?
 
 ## Project Structure
 

@@ -1,22 +1,66 @@
 # Journal AI — Project Tasks
 
-This file lists actionable tasks generated during planning and auditing. Each task includes an ID, concise title, short description, and current status.
+This file lists actionable tasks organized by sprint and user story. Each task includes an ID, concise title, short description, and current status.
 
-Generated: 2025-11-19
+**Last Updated**: 2026-02-13  
+**Sprint 0 Status**: ✅ COMPLETE (Infrastructure foundation ready)  
+**Next Phase**: Sprint 1 (Core Entries & Database)
 
 ---
 
-## Current Tasks
+## Sprint 0 — Infrastructure & Setup ✅ (COMPLETE)
 
-- ID: 1
-  Title: Design architecture & API contracts
+**Status**: COMPLETE — All foundation infrastructure in place
+
+### Completed Tasks
+
+- [X] T001 - Git repo structure with CONTRIBUTING.md
+  Description: Repository organized with clear folder structure, comprehensive CONTRIBUTING.md with commit conventions, PR process, constitution checklist.
+  Status: completed
+  
+- [X] T002 - Docker Compose services (Postgres, MinIO, Redis, API, Frontend)
+  Description: Full development environment with all services configured, volumes, health checks, networking.
+  Status: completed
+
+- [X] T003 - Backend Dockerfile (multi-stage ASP.NET Core 8)
+  Description: Optimized production-ready Dockerfile with security hardening, health checks, non-root user.
+  Status: completed
+
+- [X] T004 - Frontend Dockerfile (Node 18 + Vite dev)
+  Description: Development Dockerfile for React/Vite frontend with pnpm package manager.
+  Status: completed
+
+- [X] T005 - .env.example configuration file
+  Description: Comprehensive environment variable template covering all services, secrets, feature flags, rate limiting, logging.
+  Status: completed
+
+- [X] T006 - GitHub Actions CI workflow (lint, test, build)
+  Description: Complete CI pipeline with backend lint/test, frontend lint/test, Docker image builds, artifact uploads.
+  Status: completed
+
+- [X] T007 - Updated README.md with quick start & architecture
+  Description: Comprehensive README with quick start, architecture diagram, tech stack, implementation timeline, links to specs.
+  Status: completed
+
+- [X] T008 - Enhanced .gitignore with all exclusion patterns
+  Description: Complete .gitignore covering C#, Node, Docker, IDEs, logs, build outputs, secrets.
+  Status: completed
+
+---
+
+## Sprint 1 — Core Entries & Database (IN PROGRESS)
+
+**Goal**: Implement entry CRUD with immutability enforcement and foundation for all features.  
+**Duration**: Weeks 2-3 (10 business days)  
+**User Story**: Create, read, edit, delete journal entries with same-day edit/delete enforcement
+
+### Pending Tasks
+
+- [ ] T101 - Design architecture & API contracts
   Description: Define high-level architecture (ASP.NET Core + PostgreSQL + React), data models, OpenAPI, and component boundaries. Create RFC if major infra decisions needed.
-  Status: in-progress
+  Status: not-started
 
-- ID: 2
-  Title: Scaffold backend (ASP.NET Core)
-  Description: Create ASP.NET Core project, add EF Core + Npgsql, initial migrations, Dockerfile, and basic health endpoints.
-  Status: in-progress
+- [ ] T102 - Scaffold backend (ASP.NET Core)
 
 - ID: 3
   Title: Database schema & migrations

@@ -1,5 +1,17 @@
 # Journal AI — Specification (MVP → v1)
 
+## Clarifications
+
+### Session 2026-02-13
+
+- Q: Should entries have single or multiple categories? → A: **Single category per entry (1:1 relationship)** with flat tag support
+- Q: Where should sentiment analysis run? → A: **Client-side only (sentiment.js library)**
+- Q: What is the exact boundary for same-day edit/delete window? → A: **End of calendar day (23:59:59) in user's timezone**
+- Q: How should users unlock private entries? → A: **Account password only (no per-entry passwords for MVP)**
+- Q: When does export become asynchronous? → A: **User choice (let user pick sync vs async download option)**
+
+---
+
 ## Purpose & Constraints
 
 - Provide a personal journaling platform supporting text, photos, and videos.
@@ -17,12 +29,12 @@
 
 1. Create journal entries: text, images, video (store metadata + content pointer).
 2. Read entries: list, get by id, filter (date range, category, type), search by text.
-3. Edit/Delete policy: editable/deletable only same day; otherwise read-only.
-4. Categories & Tags: create categories, assign entries to categories or tags.
+- Edit/Delete policy: editable/deletable until 23:59:59 on created_at date in user's timezone; otherwise read-only.
+4. Categories & Tags: each entry has ONE primary category (optional); multiple flat tags supported.
 5. Timeline view: shows chronological entries, hides Private unless unlocked.
-6. Confidentiality unlock: prompt for password; ephemeral unlock (session-based).
+6. Confidentiality unlock: prompt for account password; ephemeral unlock (session-based, 1-hour timeout).
 7. Export: export selected entries or full journal as JSON, Markdown, or ZIP (media included).
-8. Sentiment analysis: per-entry sentiment score + overall trend visual (local or server-side with strict non-retention).
+8. Sentiment analysis: per-entry sentiment score + overall trend visual (client-side only using sentiment.js; no server-side processing in MVP).
 9. Mind-map: generate a node graph at category/journal/note level; export PNG/SVG.
 10. Onboarding tips: suggest journaling habits and examples.
 11. Import API: accept bulk entries with confidentiality metadata.
@@ -50,7 +62,7 @@
 
 2. Timeline
    - UI: chronological feed; Private entries display as locked placeholders (title/date) unless session unlocked.
-   - Unlock: user taps a locked item → prompt password → if correct, show full content for session.
+   - Unlock: user taps a locked item → prompt account password → if correct, unlock all private entries for session (1-hour timeout).
 
 3. Edit / Delete
    - UI: edit/delete actions visible only if entry.created_at is today (calendar day in user's timezone).
@@ -63,8 +75,8 @@
    - Export: PNG/SVG/JSON.
 
 5. Export
-   - UI: select entries or date range → export as .zip containing markdown files and media.
-   - Backend: job-based export (async) for large exports; notify when ready.
+   - UI: select entries or date range → offer choice: "Download now" (sync) or "Email when ready" (async) → export as .zip containing markdown files and media.
+   - Backend: Sync download for immediate requests; async job for large exports or if user selects async option; notify when ready.
 
 6. Import
    - API / UI import: accept JSON/ZIP with confidentiality metadata; validate and store.
@@ -82,11 +94,11 @@
   - title (optional)
   - body_text (string, optional)
   - media: array of { id, type (image|video), url, mime, size, thumbnail_url }
-  - category_id (nullable)
-  - tags: [string]
+  - category_id (uuid, optional; max 1 category per entry)
+  - tags: [string] (flat; no hierarchy)
   - type: enum('text','photo','video','mixed')
   - confidentiality: enum('public','private')
-  - confidentiality_protection: { method: 'account_password' | 'entry_password' | 'none', hint?: string }
+  - confidentiality_protection: { method: 'account_password' | 'none' } // MVP: account password only; per-entry passwords deferred to v2
   - sentiment: { score: float (-1..1), label: 'positive'|'neutral'|'negative', model_version: string, computed_at }
   - created_at (datetime with timezone)
   - updated_at

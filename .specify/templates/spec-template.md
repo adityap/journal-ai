@@ -75,6 +75,40 @@
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
 
+## Privacy Declaration *(mandatory for Journal AI)*
+
+<!--
+  ACTION REQUIRED: Complete this section if feature handles user data.
+  This aligns with Journal AI Constitution Principles I & II (Privacy-First, User-Data Protection).
+-->
+
+- **Data Types Handled**: [e.g., journal entries, sentiment scores, unlock sessions]
+- **User Consent**: [e.g., on-device only, requires explicit opt-in, server-side with audit]
+- **Retention Policy**: [e.g., retained indefinitely, deleted on user request, 90-day audit logs]
+- **Training Use**: [MUST be "NO" unless new RFC approved; feature data MUST NOT be used for model training]
+- **Encryption**: [e.g., at rest (AES-256), in transit (TLS 1.2+), encrypted audit logs]
+- **Audit Logging**: [e.g., all mutations logged, access logged, weekly privacy audit runs]
+
+---
+
+## Error Handling *(mandatory)*
+
+<!--
+  ACTION REQUIRED: Define error scenarios and HTTP response codes.
+  Aligns with Journal AI Constitution Principle IV (API Contract Excellence).
+-->
+
+### HTTP Error Codes & Responses
+
+- **400 Bad Request**: Validation error (missing/invalid field)
+- **403 Forbidden**: Permission denied (e.g., edit outside same-day window)
+- **404 Not Found**: Resource doesn't exist
+- **409 Conflict**: Concurrency or duplicate conflict
+- **429 Too Many Requests**: Rate limit exceeded
+- **500 Internal Server Error**: Unexpected backend error
+
+---
+
 ## Requirements *(mandatory)*
 
 <!--
@@ -84,11 +118,11 @@
 
 ### Functional Requirements
 
-- **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
-- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]  
-- **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
-- **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
-- **FR-005**: System MUST [behavior, e.g., "log all security events"]
+- **FR-001**: System MUST [specific capability, e.g., "allow users to create entries with confidentiality metadata"]
+- **FR-002**: System MUST [specific capability, e.g., "validate confidentiality field on all entries"]  
+- **FR-003**: Users MUST be able to [key interaction, e.g., "unlock private entries with password"]
+- **FR-004**: System MUST [data requirement, e.g., "persist all mutations with audit logs"]
+- **FR-005**: System MUST [behavior, e.g., "enforce same-day edit/delete window per user timezone"]
 
 *Example of marking unclear requirements:*
 
