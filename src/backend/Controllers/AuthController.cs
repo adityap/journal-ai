@@ -6,6 +6,7 @@ using JournalAI.Backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Configuration;
 
 namespace JournalAI.Backend.Controllers;
 

@@ -1,4 +1,5 @@
 using JournalAI.Backend.Data.Dtos;
+using Microsoft.Extensions.Logging;
 
 namespace JournalAI.Backend.Services;
 

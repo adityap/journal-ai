@@ -6,6 +6,7 @@ using JournalAI.Backend.Data.Dtos;
 using JournalAI.Backend.Models;
 using JournalAI.Backend.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace JournalAI.Backend.Controllers;
 
