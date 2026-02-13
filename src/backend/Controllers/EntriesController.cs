@@ -34,7 +34,7 @@ public class EntriesController : ControllerBase
     [ProducesResponseType(201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(401)]
-    public async Task<ActionResult<EntryResponseDto>> CreateEntry([FromBody] CreateEntryDto createDto)
+    public async Task<IActionResult> CreateEntry([FromBody] CreateEntryDto createDto)
     {
         // Validate DTO
         var validationErrors = _entryService.ValidateCreateEntry(createDto);
@@ -102,7 +102,7 @@ public class EntriesController : ControllerBase
     [HttpGet]
     [ProducesResponseType(200)]
     [ProducesResponseType(401)]
-    public async Task<ActionResult<PagedResult<EntryResponseDto>>> ListEntries(
+    public async Task<IActionResult> ListEntries(
         [FromQuery] DateTime? start,
         [FromQuery] DateTime? end,
         [FromQuery] Guid? categoryId,
@@ -160,7 +160,7 @@ public class EntriesController : ControllerBase
     [ProducesResponseType(401)]
     [ProducesResponseType(403)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<EntryResponseDto>> GetEntry(Guid id)
+    public async Task<IActionResult> GetEntry(Guid id)
     {
         var userId = User.FindFirst("sub")?.Value;
         if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
@@ -187,7 +187,7 @@ public class EntriesController : ControllerBase
     [ProducesResponseType(401)]
     [ProducesResponseType(403)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<EntryResponseDto>> UpdateEntry(Guid id, [FromBody] UpdateEntryDto updateDto)
+    public async Task<IActionResult> UpdateEntry(Guid id, [FromBody] UpdateEntryDto updateDto)
     {
         var userId = User.FindFirst("sub")?.Value;
         if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))

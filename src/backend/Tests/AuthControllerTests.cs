@@ -13,11 +13,12 @@ using JournalAI.Backend.Services;
 using System;
 using System.Threading.Tasks;
 using System.Security.Claims;
-using BCrypt.Net;
+// Use fully-qualified BCrypt to avoid type/namespace ambiguity when referencing the
+// compiled main assembly from tests.
 
 namespace JournalAI.Backend.Tests;
 
-public class AuthControllerTests
+public class AuthControllerTests : IDisposable
 {
     private readonly Mock<ILogger<AuthService>> _mockAuthLogger;
     private readonly Mock<ILogger<AuthController>> _mockControllerLogger;
@@ -112,7 +113,7 @@ public class AuthControllerTests
         {
             Id = Guid.NewGuid(),
             Email = "login@example.com",
-            PasswordHash = BCrypt.HashPassword(password, 12),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, 12),
             Timezone = "UTC",
             CreatedAt = DateTime.UtcNow
         };
@@ -138,7 +139,7 @@ public class AuthControllerTests
         {
             Id = Guid.NewGuid(),
             Email = "wrong@example.com",
-            PasswordHash = BCrypt.HashPassword("CorrectPassword123", 12),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("CorrectPassword123", 12),
             Timezone = "UTC",
             CreatedAt = DateTime.UtcNow
         };
@@ -216,7 +217,7 @@ public class AuthControllerTests
         {
             Id = Guid.NewGuid(),
             Email = "validate@example.com",
-            PasswordHash = BCrypt.HashPassword("Password123", 12),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123", 12),
             Timezone = "UTC",
             CreatedAt = DateTime.UtcNow
         };

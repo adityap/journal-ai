@@ -9,11 +9,12 @@ using JournalAI.Backend.Models;
 using JournalAI.Backend.Services;
 using System;
 using System.Threading.Tasks;
-using BCrypt.Net;
+// Use fully-qualified BCrypt to avoid type/namespace ambiguity when referencing the
+// compiled main assembly from tests.
 
 namespace JournalAI.Backend.Tests;
 
-public class AuthServiceTests
+public class AuthServiceTests : IDisposable
 {
     private readonly Mock<ILogger<AuthService>> _mockLogger;
     private readonly Mock<IConfiguration> _mockConfig;
@@ -65,7 +66,7 @@ public class AuthServiceTests
         {
             Id = Guid.NewGuid(),
             Email = email,
-            PasswordHash = BCrypt.HashPassword("OldPassword123", 12),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("OldPassword123", 12),
             Timezone = "UTC",
             CreatedAt = DateTime.UtcNow
         };
@@ -92,7 +93,7 @@ public class AuthServiceTests
         {
             Id = Guid.NewGuid(),
             Email = "login@example.com",
-            PasswordHash = BCrypt.HashPassword(password, 12),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, 12),
             Timezone = "UTC",
             CreatedAt = DateTime.UtcNow
         };
@@ -119,7 +120,7 @@ public class AuthServiceTests
         {
             Id = Guid.NewGuid(),
             Email = "wrong@example.com",
-            PasswordHash = BCrypt.HashPassword("CorrectPassword123", 12),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("CorrectPassword123", 12),
             Timezone = "UTC",
             CreatedAt = DateTime.UtcNow
         };
@@ -144,7 +145,7 @@ public class AuthServiceTests
         {
             Id = Guid.NewGuid(),
             Email = "jwttest@example.com",
-            PasswordHash = BCrypt.HashPassword("Password123", 12),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123", 12),
             Timezone = "UTC",
             CreatedAt = DateTime.UtcNow
         };
@@ -164,7 +165,7 @@ public class AuthServiceTests
         {
             Id = Guid.NewGuid(),
             Email = "valid@example.com",
-            PasswordHash = BCrypt.HashPassword("Password123", 12),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123", 12),
             Timezone = "UTC",
             CreatedAt = DateTime.UtcNow
         };
@@ -193,7 +194,7 @@ public class AuthServiceTests
         {
             Id = userId,
             Email = "extract@example.com",
-            PasswordHash = BCrypt.HashPassword("Password123", 12),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123", 12),
             Timezone = "UTC",
             CreatedAt = DateTime.UtcNow
         };

@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using JournalAI.Backend.Data;
 using JournalAI.Backend.Services;
+using Amazon.S3;
+using Amazon;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,11 +11,48 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Add AuthService
+// Add AWS S3 Client
+var isDev = builder.Environment.IsDevelopment();
+if (isDev)
+{
+    // Use MinIO for local development
+    var minioEndpoint = builder.Configuration["S3:Endpoint"] ?? "http://localhost:9000";
+    var minioAccessKey = builder.Configuration["S3:AccessKey"] ?? "minioadmin";
+    var minioSecretKey = builder.Configuration["S3:SecretKey"] ?? "minioadmin";
+
+    var s3Config = new AmazonS3Config
+    {
+        ServiceURL = minioEndpoint,
+        ForcePathStyle = true
+    };
+
+    builder.Services.AddSingleton<IAmazonS3>(
+        new AmazonS3Client(minioAccessKey, minioSecretKey, s3Config)
+    );
+}
+else
+{
+    // Use AWS S3 for production
+    var awsAccessKey = builder.Configuration["AWS:AccessKey"] ?? "";
+    var awsSecretKey = builder.Configuration["AWS:SecretKey"] ?? "";
+    var awsRegion = builder.Configuration["AWS:Region"] ?? "us-east-1";
+
+    var s3Config = new AmazonS3Config
+    {
+        RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(awsRegion)
+    };
+
+    builder.Services.AddSingleton<IAmazonS3>(
+        new AmazonS3Client(awsAccessKey, awsSecretKey, s3Config)
+    );
+}
+
+// Add services
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<EntryService>();
+builder.Services.AddScoped<S3Service>();
+builder.Services.AddScoped<MediaService>();
 
-var isDev = builder.Environment.IsDevelopment();
 if (isDev)
 {
     // Use a local file SQLite DB for development so migrations and local runs don't need Postgres
