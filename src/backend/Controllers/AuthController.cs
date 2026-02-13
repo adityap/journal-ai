@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using JournalAI.Backend.Data.Dtos.Auth;
 using JournalAI.Backend.Services;
 
