@@ -2,148 +2,311 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using JournalAI.Backend.Data;
+using JournalAI.Backend.Data.Dtos;
 using JournalAI.Backend.Models;
+using JournalAI.Backend.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace JournalAI.Backend.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/entries")]
 [Authorize]
 public class EntriesController : ControllerBase
 {
-    private readonly AppDbContext _db;
-    public EntriesController(AppDbContext db) => _db = db;
+    private readonly AppDbContext _context;
+    private readonly EntryService _entryService;
+    private readonly ILogger<EntriesController> _logger;
 
-    [HttpGet]
-    public IActionResult GetAll()
+    public EntriesController(AppDbContext context, EntryService entryService, ILogger<EntriesController> logger)
     {
-        var userId = GetCurrentUserId();
-        if (userId == null) return Unauthorized();
-
-        var entries = _db.Entries.Where(e => e.UserId == userId).OrderByDescending(e => e.CreatedAt).Take(50).ToList();
-        return Ok(entries);
+        _context = context;
+        _entryService = entryService;
+        _logger = logger;
     }
 
+    /// <summary>
+    /// Create a new entry
+    /// POST /api/v1/entries
+    /// </summary>
     [HttpPost]
-    public IActionResult Create([FromBody] Entry e)
+    [ProducesResponseType(201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    public async Task<ActionResult<EntryResponseDto>> CreateEntry([FromBody] CreateEntryDto createDto)
     {
-        var userId = GetCurrentUserId();
-        if (userId == null) return Unauthorized();
+        // Validate DTO
+        var validationErrors = _entryService.ValidateCreateEntry(createDto);
+        if (validationErrors.Any())
+            return BadRequest(new { errors = validationErrors });
 
-        e.Id = Guid.NewGuid();
-        e.UserId = userId.Value;
-        e.CreatedAt = DateTime.UtcNow;
-        e.UpdatedAt = e.CreatedAt;
-        _db.Entries.Add(e);
-        _db.SaveChanges();
-        return CreatedAtAction(nameof(GetById), new { id = e.Id }, e);
+        // Get current user from JWT
+        var userId = User.FindFirst("sub")?.Value;
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        if (!Guid.TryParse(userId, out var userGuid))
+            return Unauthorized();
+
+        var user = await _context.Users.FindAsync(userGuid);
+        if (user == null)
+            return Unauthorized();
+
+        // Create entry
+        var entry = new Entry
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Title = createDto.Title,
+            BodyText = createDto.BodyText,
+            Type = createDto.Type ?? "text",
+            Confidentiality = createDto.Confidentiality,
+            CategoryId = createDto.CategoryId,
+            Tags = createDto.Tags,
+            SentimentScore = createDto.SentimentScore,
+            SentimentLabel = createDto.SentimentLabel,
+            SentimentModel = createDto.SentimentModel,
+            Metadata = createDto.Metadata != null ? System.Text.Json.JsonSerializer.Serialize(createDto.Metadata) : null,
+            CreatedAt = createDto.CreatedAt ?? DateTime.UtcNow,
+            Source = "ui",
+            Immutable = false
+        };
+
+        // Calculate read_only_after based on user's timezone
+        entry.ReadOnlyAfter = _entryService.CalculateReadOnlyAfter(user.Timezone, entry.CreatedAt);
+
+        _context.Entries.Add(entry);
+        await _context.SaveChangesAsync();
+
+        // Log audit
+        _context.AuditLogs.Add(new AuditLog
+        {
+            EntryId = entry.Id,
+            UserId = user.Id,
+            Action = "create",
+            ActorIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            Timestamp = DateTime.UtcNow
+        });
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Entry created: {EntryId} by user {UserId}", entry.Id, user.Id);
+
+        return CreatedAtAction(nameof(GetEntry), new { id = entry.Id }, MapToDto(entry));
     }
 
+    /// <summary>
+    /// List entries with pagination and filtering
+    /// GET /api/v1/entries?page=1&per_page=20&start=...&end=...&categoryId=...&tag=...
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<ActionResult<PagedResult<EntryResponseDto>>> ListEntries(
+        [FromQuery] DateTime? start,
+        [FromQuery] DateTime? end,
+        [FromQuery] Guid? categoryId,
+        [FromQuery] string? tag,
+        [FromQuery] int page = 1,
+        [FromQuery] int perPage = 20)
+    {
+        var userId = User.FindFirst("sub")?.Value;
+        if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+            return Unauthorized();
+
+        var query = _context.Entries
+            .Where(e => e.UserId == userGuid)
+            .AsQueryable();
+
+        // Filter by date range
+        if (start.HasValue)
+            query = query.Where(e => e.CreatedAt >= start.Value);
+        if (end.HasValue)
+            query = query.Where(e => e.CreatedAt <= end.Value);
+
+        // Filter by category
+        if (categoryId.HasValue)
+            query = query.Where(e => e.CategoryId == categoryId.Value);
+
+        // Filter by tag (simple string match)
+        if (!string.IsNullOrEmpty(tag))
+            query = query.Where(e => e.Tags != null && e.Tags.Contains(tag));
+
+        var totalCount = await query.CountAsync();
+        var entries = await query
+            .OrderByDescending(e => e.CreatedAt)
+            .Skip((page - 1) * perPage)
+            .Take(perPage)
+            .ToListAsync();
+
+        var result = new PagedResult<EntryResponseDto>
+        {
+            Items = entries.Select(MapToDto).ToList(),
+            TotalCount = totalCount,
+            Page = page,
+            PerPage = perPage,
+            TotalPages = (totalCount + perPage - 1) / perPage
+        };
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Get a single entry by ID
+    /// GET /api/v1/entries/{id}
+    /// </summary>
     [HttpGet("{id}")]
-    public IActionResult GetById(Guid id)
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<EntryResponseDto>> GetEntry(Guid id)
     {
-        var userId = GetCurrentUserId();
-        if (userId == null) return Unauthorized();
+        var userId = User.FindFirst("sub")?.Value;
+        if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+            return Unauthorized();
 
-        var entry = _db.Entries.Find(id);
-        if (entry == null) return NotFound();
-        if (entry.UserId != userId) return Forbid();
-        return Ok(entry);
+        var entry = await _context.Entries.FindAsync(id);
+        if (entry == null)
+            return NotFound();
+
+        if (entry.UserId != userGuid)
+            return Forbid();
+
+        return Ok(MapToDto(entry));
     }
 
-    [HttpPut("{id}")]
-    public IActionResult Update(Guid id, [FromBody] Entry updated)
+    /// <summary>
+    /// Update an entry
+    /// PATCH /api/v1/entries/{id}
+    /// Only editable before read_only_after boundary, returns 403 if immutable
+    /// </summary>
+    [HttpPatch("{id}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<EntryResponseDto>> UpdateEntry(Guid id, [FromBody] UpdateEntryDto updateDto)
     {
-        var userId = GetCurrentUserId();
-        if (userId == null) return Unauthorized();
+        var userId = User.FindFirst("sub")?.Value;
+        if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+            return Unauthorized();
 
-        var entry = _db.Entries.Find(id);
-        if (entry == null) return NotFound();
-        if (entry.UserId != userId) return Forbid();
+        var entry = await _context.Entries.FindAsync(id);
+        if (entry == null)
+            return NotFound();
 
-        // Only allow same-day edits
-        if (!IsSameLocalDay(entry.CreatedAt, userId.Value))
-            return BadRequest(new { error = "Entries can only be edited on the day they were created." });
+        if (entry.UserId != userGuid)
+            return Forbid();
 
-        // Apply allowed changes
-        entry.Title = updated.Title ?? entry.Title;
-        entry.Body = updated.Body ?? entry.Body;
-        entry.IsPrivate = updated.IsPrivate;
+        // Check immutability
+        if (!_entryService.IsEntryEditable(entry))
+        {
+            _logger.LogWarning("Attempt to edit immutable entry {EntryId} by user {UserId}", entry.Id, userGuid);
+            return StatusCode(403, new { code = "ENTRY_IMMUTABLE", message = "Entry can no longer be edited" });
+        }
+
+        // Update fields
+        if (!string.IsNullOrEmpty(updateDto.Title))
+            entry.Title = updateDto.Title;
+        if (!string.IsNullOrEmpty(updateDto.BodyText))
+            entry.BodyText = updateDto.BodyText;
+        if (updateDto.CategoryId.HasValue)
+            entry.CategoryId = updateDto.CategoryId.Value;
+        if (updateDto.Tags != null)
+            entry.Tags = updateDto.Tags;
+
         entry.UpdatedAt = DateTime.UtcNow;
 
-        _db.Entries.Update(entry);
-        _db.SaveChanges();
-        return Ok(entry);
+        _context.Entries.Update(entry);
+        await _context.SaveChangesAsync();
+
+        // Log audit
+        _context.AuditLogs.Add(new AuditLog
+        {
+            EntryId = entry.Id,
+            UserId = userGuid,
+            Action = "update",
+            ActorIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            Timestamp = DateTime.UtcNow
+        });
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Entry updated: {EntryId} by user {UserId}", entry.Id, userGuid);
+
+        return Ok(MapToDto(entry));
     }
 
+    /// <summary>
+    /// Delete an entry
+    /// DELETE /api/v1/entries/{id}
+    /// Only deletable before read_only_after boundary, returns 403 if immutable
+    /// </summary>
     [HttpDelete("{id}")]
-    public IActionResult Delete(Guid id)
+    [ProducesResponseType(204)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> DeleteEntry(Guid id)
     {
-        var userId = GetCurrentUserId();
-        if (userId == null) return Unauthorized();
+        var userId = User.FindFirst("sub")?.Value;
+        if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+            return Unauthorized();
 
-        var entry = _db.Entries.Find(id);
-        if (entry == null) return NotFound();
-        if (entry.UserId != userId) return Forbid();
+        var entry = await _context.Entries.FindAsync(id);
+        if (entry == null)
+            return NotFound();
 
-        // Only allow same-day deletes
-        if (!IsSameLocalDay(entry.CreatedAt, userId.Value))
-            return BadRequest(new { error = "Entries can only be deleted on the day they were created." });
+        if (entry.UserId != userGuid)
+            return Forbid();
 
-        _db.Entries.Remove(entry);
-        _db.SaveChanges();
+        // Check immutability
+        if (!_entryService.IsEntryEditable(entry))
+        {
+            _logger.LogWarning("Attempt to delete immutable entry {EntryId} by user {UserId}", entry.Id, userGuid);
+            return StatusCode(403, new { code = "ENTRY_IMMUTABLE", message = "Entry can no longer be deleted" });
+        }
+
+        // Delete media files (enqueue background job in future sprint)
+        var mediaFiles = await _context.Media.Where(m => m.EntryId == id).ToListAsync();
+        // TODO: Enqueue media deletion job
+
+        // Delete entry
+        _context.Entries.Remove(entry);
+        await _context.SaveChangesAsync();
+
+        // Log audit
+        _context.AuditLogs.Add(new AuditLog
+        {
+            EntryId = entry.Id,
+            UserId = userGuid,
+            Action = "delete",
+            ActorIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            Timestamp = DateTime.UtcNow
+        });
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Entry deleted: {EntryId} by user {UserId}", entry.Id, userGuid);
+
         return NoContent();
     }
 
-    private Guid? GetCurrentUserId()
+    private static EntryResponseDto MapToDto(Entry entry)
     {
-        var sub = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User?.FindFirst(ClaimTypes.Name)?.Value ?? User?.FindFirst("sub")?.Value;
-        if (string.IsNullOrEmpty(sub)) return null;
-        if (Guid.TryParse(sub, out var guid)) return guid;
-        return null;
-    }
-
-    private bool IsSameLocalDay(DateTime utcTime, Guid userId)
-    {
-        var user = _db.Users.Find(userId);
-        var tz = user?.Timezone;
-        DateTime userLocal;
-        try
+        return new EntryResponseDto
         {
-            if (!string.IsNullOrEmpty(tz))
-            {
-                var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tz);
-                userLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utcTime, DateTimeKind.Utc), tzInfo);
-            }
-            else
-            {
-                userLocal = utcTime.ToLocalTime();
-            }
-        }
-        catch
-        {
-            // If timezone lookup fails, fall back to UTC local comparison
-            userLocal = utcTime.ToLocalTime();
-        }
-
-        var nowLocal = DateTime.UtcNow;
-        try
-        {
-            if (!string.IsNullOrEmpty(tz))
-            {
-                var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tz);
-                nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tzInfo);
-            }
-            else
-            {
-                nowLocal = DateTime.UtcNow.ToLocalTime();
-            }
-        }
-        catch
-        {
-            nowLocal = DateTime.UtcNow.ToLocalTime();
-        }
-
-        return userLocal.Date == nowLocal.Date;
+            Id = entry.Id,
+            Title = entry.Title,
+            BodyText = entry.BodyText,
+            Type = entry.Type,
+            Confidentiality = entry.Confidentiality,
+            CategoryId = entry.CategoryId,
+            Tags = entry.Tags,
+            SentimentScore = entry.SentimentScore,
+            SentimentLabel = entry.SentimentLabel,
+            CreatedAt = entry.CreatedAt,
+            ReadOnlyAfter = entry.ReadOnlyAfter,
+            Immutable = entry.Immutable
+        };
     }
 }

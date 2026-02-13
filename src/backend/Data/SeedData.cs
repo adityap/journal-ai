@@ -1,4 +1,5 @@
 using JournalAI.Backend.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace JournalAI.Backend.Data;
 
@@ -12,13 +13,13 @@ public static class SeedData
         {
             var user = new User
             {
-                Username = "devuser",
+                Email = "dev@example.com",
                 Timezone = "UTC",
-                NoTraining = true
+                NoTrainingUse = true
             };
 
             // Hash a default dev password (devpassword) for local development
-            var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
+            var hasher = new PasswordHasher<User>();
             user.PasswordHash = hasher.HashPassword(user, "devpassword");
 
             db.Users.Add(user);
@@ -27,10 +28,11 @@ public static class SeedData
             {
                 UserId = user.Id,
                 Title = "Welcome",
-                Body = "This is a seeded entry for local development.",
+                BodyText = "This is a seeded entry for local development.",
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                IsPrivate = false
+                ReadOnlyAfter = DateTime.UtcNow.AddDays(1),
+                Type = "text",
+                Confidentiality = "public"
             };
             db.Entries.Add(entry);
             db.SaveChanges();
