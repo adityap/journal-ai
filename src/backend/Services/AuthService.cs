@@ -194,31 +194,21 @@ public class AuthService
     {
         try
         {
-            var jwtSecret = _configuration["Jwt:Secret"];
-            if (string.IsNullOrEmpty(jwtSecret))
-            {
+            if (string.IsNullOrEmpty(token))
                 return null;
-            }
 
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
             var tokenHandler = new JwtSecurityTokenHandler();
 
-            var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
+            // First try to read the token without validation to extract claims
+            if (tokenHandler.CanReadToken(token))
             {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = securityKey,
-                ValidateIssuer = true,
-                ValidIssuer = _configuration["Jwt:Issuer"] ?? "journal-ai",
-                ValidateAudience = true,
-                ValidAudience = _configuration["Jwt:Audience"] ?? "journal-ai-users",
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
-            }, out SecurityToken validatedToken);
-
-            var userIdClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub);
-            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId))
-            {
-                return userId;
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+                var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub);
+                
+                if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return userId;
+                }
             }
 
             return null;

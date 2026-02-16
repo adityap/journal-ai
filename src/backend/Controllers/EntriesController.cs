@@ -204,7 +204,7 @@ public class EntriesController : ControllerBase
         if (!_entryService.IsEntryEditable(entry))
         {
             _logger.LogWarning("Attempt to edit immutable entry {EntryId} by user {UserId}", entry.Id, userGuid);
-            return StatusCode(403, new { code = "ENTRY_IMMUTABLE", message = "Entry can no longer be edited" });
+            return Forbid();
         }
 
         // Update fields
@@ -265,7 +265,7 @@ public class EntriesController : ControllerBase
         if (!_entryService.IsEntryEditable(entry))
         {
             _logger.LogWarning("Attempt to delete immutable entry {EntryId} by user {UserId}", entry.Id, userGuid);
-            return StatusCode(403, new { code = "ENTRY_IMMUTABLE", message = "Entry can no longer be deleted" });
+            return Forbid();
         }
 
         // Delete media files (enqueue background job in future sprint)

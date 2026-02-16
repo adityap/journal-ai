@@ -200,8 +200,14 @@ public class AuthServiceTests : IDisposable
         };
         var tokenDto = _authService.GenerateJWT(user);
 
+        // Verify token is not null and is a valid JWT
+        Assert.NotNull(tokenDto.AccessToken);
+        Assert.NotEmpty(tokenDto.AccessToken);
+        
         var extractedId = _authService.ExtractUserIdFromToken(tokenDto.AccessToken);
 
+        // Extract should work
+        Assert.NotNull(extractedId);
         Assert.Equal(userId, extractedId);
     }
 

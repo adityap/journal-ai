@@ -6,6 +6,7 @@ import { LoginForm } from './components/LoginForm';
 import { RegisterForm } from './components/RegisterForm';
 import { Timeline } from './components/Timeline';
 import { EntryForm } from './components/EntryForm';
+import { EntryDetail } from './components/EntryDetail';
 import './App.css';
 import './styles/media.css';
 
@@ -30,6 +31,10 @@ function App() {
           <Route
             path="/entries/:id/edit"
             element={<ProtectedRoute element={<EntryForm />} />}
+          />
+          <Route
+            path="/entries/:id"
+            element={<ProtectedRoute element={<EntryDetail />} />}
           />
 
           {/* Redirect unknown routes to home */}

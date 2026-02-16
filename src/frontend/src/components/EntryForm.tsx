@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { createEntry, updateEntry, getEntry, Entry, CreateEntryRequest, UpdateEntryRequest } from '../services/apiClient';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  createEntry,
+  updateEntry,
+  getEntry,
+  Entry,
+  CreateEntryRequest,
+  UpdateEntryRequest,
+  isEntryImmutable,
+} from '../services/entriesClient';
 import { MediaUpload } from './MediaUpload';
 import { MediaLibrary } from './MediaLibrary';
 import { associateMediaWithEntry, MediaFile } from '../services/mediaClient';
@@ -10,12 +19,9 @@ import { associateMediaWithEntry, MediaFile } from '../services/mediaClient';
  * Includes client-side validation, error handling, and success notifications
  */
 
-interface EntryFormProps {
-  entryId?: string; // If present, component is in edit mode
-  onSuccess?: () => void;
-}
-
-export const EntryForm: React.FC<EntryFormProps> = ({ entryId, onSuccess }) => {
+export const EntryForm: React.FC = () => {
+  const { id: entryId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [bodyText, setBodyText] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -46,7 +52,7 @@ export const EntryForm: React.FC<EntryFormProps> = ({ entryId, onSuccess }) => {
           if (entry.sentimentScore) {
             setSentimentScore(entry.sentimentScore.toString());
           }
-          setIsEditing(!isImmutable(entry));
+          setIsEditing(!isEntryImmutable(entry));
         } catch (err: any) {
           const message = err.response?.data?.message || 'Failed to load entry';
           setError(message);
@@ -156,15 +162,10 @@ export const EntryForm: React.FC<EntryFormProps> = ({ entryId, onSuccess }) => {
       setConfidentiality('public');
       setSentimentScore('');
 
-      // Call success callback or redirect
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        // Show success message and redirect after 2 seconds
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 2000);
-      }
+      // Redirect after brief delay
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
     } catch (err: any) {
       const message = err.response?.data?.message || err.message || 'Failed to save entry';
       

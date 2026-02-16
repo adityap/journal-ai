@@ -66,7 +66,7 @@ public class AuthController : ControllerBase
 
             var token = await _authService.RegisterAsync(request);
             _logger.LogInformation("User registered successfully: {Email}", request.Email);
-            return StatusCode(201, token);
+            return Created("/api/v1/auth/register", token);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("already registered"))
         {

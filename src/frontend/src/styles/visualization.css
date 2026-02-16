@@ -1,0 +1,525 @@
+/* ===== MINDMAP VIEW STYLES ===== */
+
+.mindmap-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.mindmap-header {
+  margin-bottom: 2rem;
+}
+
+.mindmap-header h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  color: #333;
+}
+
+.mindmap-subtitle {
+  color: #666;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.mindmap-legend {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.mindmap-canvas {
+  padding: 2rem;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 12px;
+  min-height: 400px;
+  overflow: auto;
+  margin-bottom: 2rem;
+}
+
+.mindmap-node {
+  margin-bottom: 1rem;
+}
+
+.mindmap-node-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.mindmap-node-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 25px;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  max-width: 300px;
+  word-break: break-word;
+  position: relative;
+}
+
+.mindmap-node-bubble:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.mindmap-node.depth-0 .mindmap-node-bubble {
+  font-size: 1.1rem;
+  padding: 1.25rem 2rem;
+}
+
+.mindmap-node.depth-1 .mindmap-node-bubble {
+  font-size: 0.95rem;
+  padding: 0.75rem 1.25rem;
+}
+
+.mindmap-node.depth-2 .mindmap-node-bubble {
+  font-size: 0.85rem;
+  padding: 0.6rem 1rem;
+}
+
+.mindmap-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.mindmap-toggle.expanded {
+  transform: rotate(180deg);
+}
+
+.mindmap-label {
+  flex: 1;
+}
+
+.mindmap-children {
+  margin-left: 2rem;
+  padding-left: 2rem;
+  border-left: 2px dashed #ddd;
+}
+
+.mindmap-child {
+  margin: 1rem 0;
+}
+
+.mindmap-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+/* ===== SENTIMENT CHART STYLES ===== */
+
+.sentiment-chart-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.chart-header h2 {
+  margin: 0;
+  font-size: 2rem;
+  color: #333;
+}
+
+.date-range-selector {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.range-btn {
+  padding: 0.5rem 1.25rem;
+  border: 2px solid #ddd;
+  background: white;
+  color: #666;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.range-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.range-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+}
+
+.chart-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  padding: 1.5rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  color: #666;
+}
+
+.stat-value {
+  margin: 0.5rem 0;
+  font-size: 2rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stat-label {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.chart-canvas {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 300px;
+  overflow-x: auto;
+  padding: 1rem;
+  min-width: 100%;
+}
+
+.bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 40px;
+}
+
+.bar {
+  width: 30px;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 20px;
+}
+
+.bar:hover {
+  filter: brightness(1.2);
+  transform: scaleY(1.05);
+}
+
+.bar-label {
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding-bottom: 0.25rem;
+}
+
+.bar-date {
+  font-size: 0.75rem;
+  color: #666;
+  text-align: center;
+  width: 100%;
+  word-break: break-word;
+}
+
+.chart-legend {
+  background: #f9f9f9;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.chart-legend h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+.legend-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.legend-item .legend-color {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.legend-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.legend-text strong {
+  color: #333;
+  margin: 0;
+}
+
+.legend-text small {
+  color: #999;
+  margin: 0.25rem 0 0 0;
+}
+
+.data-note {
+  padding: 1rem;
+  background: #e3f2fd;
+  color: #1565c0;
+  border-radius: 8px;
+  border-left: 4px solid #1565c0;
+  font-size: 0.9rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #999;
+}
+
+.empty-state p {
+  margin: 0.5rem 0;
+}
+
+.empty-state p:first-child {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.error-message {
+  text-align: center;
+  padding: 2rem;
+  background: #ffebee;
+  border-radius: 8px;
+  color: #c62828;
+  border-left: 4px solid #c62828;
+}
+
+.error-message p {
+  margin: 0.5rem 0;
+}
+
+.error-message .btn {
+  margin-top: 1rem;
+}
+
+.btn {
+  padding: 0.6rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+
+@media (max-width: 768px) {
+  .mindmap-container,
+  .sentiment-chart-container {
+    padding: 1rem 0.5rem;
+  }
+
+  .mindmap-header h2,
+  .chart-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .date-range-selector {
+    width: 100%;
+  }
+
+  .range-btn {
+    flex: 1;
+  }
+
+  .chart-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mindmap-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .mindmap-legend {
+    gap: 1rem;
+  }
+
+  .bar-chart {
+    gap: 0.25rem;
+  }
+
+  .bar-group {
+    min-width: 30px;
+  }
+
+  .bar {
+    width: 24px;
+  }
+
+  .mindmap-node-bubble {
+    max-width: 200px;
+    font-size: 0.85rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .mindmap-children {
+    margin-left: 1rem;
+    padding-left: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .mindmap-container,
+  .sentiment-chart-container {
+    padding: 1rem 0.25rem;
+  }
+
+  .mindmap-header h2,
+  .chart-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .chart-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .bar-chart {
+    gap: 0.2rem;
+  }
+
+  .bar-group {
+    min-width: 25px;
+  }
+
+  .bar {
+    width: 20px;
+  }
+
+  .bar-date {
+    font-size: 0.65rem;
+  }
+
+  .mindmap-canvas {
+    padding: 1rem;
+    min-height: 300px;
+  }
+
+  .mindmap-node-bubble {
+    max-width: 150px;
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .mindmap-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .legend-items {
+    grid-template-columns: 1fr;
+  }
+}
