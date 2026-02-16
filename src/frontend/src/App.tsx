@@ -7,6 +7,7 @@ import { RegisterForm } from './components/RegisterForm';
 import { Timeline } from './components/Timeline';
 import { EntryForm } from './components/EntryForm';
 import './App.css';
+import './styles/media.css';
 
 function App() {
   return (

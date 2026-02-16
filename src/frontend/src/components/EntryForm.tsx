@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createEntry, updateEntry, getEntry, Entry, CreateEntryRequest, UpdateEntryRequest } from '../services/apiClient';
+import { MediaUpload } from './MediaUpload';
+import { MediaLibrary } from './MediaLibrary';
+import { associateMediaWithEntry, MediaFile } from '../services/mediaClient';
 
 /**
  * Entry Form Component
@@ -24,6 +27,9 @@ export const EntryForm: React.FC<EntryFormProps> = ({ entryId, onSuccess }) => {
   const [success, setSuccess] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showMediaUpload, setShowMediaUpload] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<MediaFile | null>(null);
+  const [mediaError, setMediaError] = useState<string | null>(null);
 
   // Load entry data if editing
   useEffect(() => {
@@ -126,7 +132,17 @@ export const EntryForm: React.FC<EntryFormProps> = ({ entryId, onSuccess }) => {
       } else {
         // Create new entry
         const createPayload: CreateEntryRequest = payload as CreateEntryRequest;
-        await createEntry(createPayload);
+        const newEntry = await createEntry(createPayload);
+
+        // If media was selected, associate it with the new entry
+        if (selectedMedia) {
+          try {
+            await associateMediaWithEntry(selectedMedia.id, newEntry.id);
+          } catch (mediaErr: any) {
+            console.error('Failed to associate media with entry:', mediaErr);
+            // Continue anyway - entry was created successfully
+          }
+        }
       }
 
       setSuccess(true);
@@ -300,6 +316,62 @@ export const EntryForm: React.FC<EntryFormProps> = ({ entryId, onSuccess }) => {
           </div>
         </div>
 
+        {/* Media Management Section - only show when creating new entry */}
+        {!entryId && (
+          <div className="media-management-section">
+            <div className="media-section-header">
+              <h3>Attach Media (Optional)</h3>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowMediaUpload(!showMediaUpload)}
+              >
+                {showMediaUpload ? '▼ Hide Upload' : '▶ Show Upload'}
+              </button>
+            </div>
+
+            {showMediaUpload && (
+              <div className="media-upload-wrapper">
+                <MediaUpload
+                  onSuccess={(media) => {
+                    setSelectedMedia(media);
+                    setMediaError(null);
+                  }}
+                  onError={(error) => setMediaError(error)}
+                />
+              </div>
+            )}
+
+            {mediaError && (
+              <div className="form-alert alert-error">
+                <p>{mediaError}</p>
+              </div>
+            )}
+
+            {selectedMedia && (
+              <div className="selected-media-info">
+                <p className="selected-label">
+                  ✓ Media selected: <strong>{selectedMedia.fileName}</strong>
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setSelectedMedia(null)}
+                >
+                  Clear Selection
+                </button>
+              </div>
+            )}
+
+            {!showMediaUpload && !selectedMedia && (
+              <div className="media-library-wrapper">
+                <p className="media-library-label">Or select from your library:</p>
+                <MediaLibrary onSelectMedia={(media) => setSelectedMedia(media)} />
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="form-actions">
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? 'Saving...' : entryId ? 'Update Entry' : 'Create Entry'}
@@ -443,6 +515,62 @@ export const EntryForm: React.FC<EntryFormProps> = ({ entryId, onSuccess }) => {
           font-size: 0.85rem;
           color: #999;
           margin-top: 0.25rem;
+        }
+
+        .media-management-section {
+          margin-top: 2rem;
+          padding: 1.5rem;
+          background-color: #f9f9f9;
+          border: 1px solid #e0e0e0;
+          border-radius: 8px;
+        }
+
+        .media-section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1rem;
+        }
+
+        .media-section-header h3 {
+          margin: 0;
+          font-size: 1.1rem;
+          color: #333;
+        }
+
+        .btn-sm {
+          padding: 0.5rem 1rem;
+          font-size: 0.9rem;
+        }
+
+        .media-upload-wrapper {
+          margin-bottom: 1.5rem;
+        }
+
+        .selected-media-info {
+          padding: 1rem;
+          background-color: #e8f5e9;
+          border: 1px solid #c8e6c9;
+          border-radius: 4px;
+          margin-bottom: 1rem;
+        }
+
+        .selected-label {
+          margin: 0 0 0.5rem 0;
+          color: #2e7d32;
+          font-size: 0.95rem;
+        }
+
+        .media-library-wrapper {
+          margin-top: 1rem;
+          padding-top: 1rem;
+          border-top: 1px solid #ddd;
+        }
+
+        .media-library-label {
+          margin: 0 0 1rem 0;
+          color: #666;
+          font-size: 0.9rem;
         }
 
         .form-actions {
