@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Amazon.S3;
+using Hangfire;
 
 namespace JournalAI.Backend.Tests;
 
@@ -19,6 +20,7 @@ public class MediaServiceTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly Mock<S3Service> _s3ServiceMock;
+    private readonly Mock<JobSchedulerService> _jobSchedulerMock;
     private readonly Mock<ILogger<MediaService>> _loggerMock;
     private readonly MediaService _mediaService;
 
@@ -37,9 +39,15 @@ public class MediaServiceTests : IDisposable
             It.IsAny<IConfiguration>(),
             It.IsAny<ILogger<S3Service>>()
         );
+        _jobSchedulerMock = new Mock<JobSchedulerService>(MockBehavior.Loose,
+            It.IsAny<IBackgroundJobClient>(),
+            It.IsAny<IRecurringJobManager>(),
+            It.IsAny<IConfiguration>(),
+            It.IsAny<ILogger<JobSchedulerService>>()
+        );
         _loggerMock = new Mock<ILogger<MediaService>>(MockBehavior.Loose);
 
-        _mediaService = new MediaService(_context, _s3ServiceMock.Object, _loggerMock.Object);
+        _mediaService = new MediaService(_context, _s3ServiceMock.Object, _jobSchedulerMock.Object, _loggerMock.Object);
 
         // Seed test data
         SeedTestData();

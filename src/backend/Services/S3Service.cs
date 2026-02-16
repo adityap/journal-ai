@@ -25,7 +25,7 @@ public class S3Service
     /// <summary>
     /// Generates a presigned URL for downloading media from S3
     /// </summary>
-    public async Task<string> GeneratePresignedDownloadUrlAsync(
+    public virtual async Task<string> GeneratePresignedDownloadUrlAsync(
         string bucketName,
         string key,
         int expirationMinutes = 60)
@@ -54,7 +54,7 @@ public class S3Service
     /// <summary>
     /// Generates a presigned URL for uploading media to S3
     /// </summary>
-    public async Task<string> GeneratePresignedUploadUrlAsync(
+    public virtual async Task<string> GeneratePresignedUploadUrlAsync(
         string bucketName,
         string key,
         int expirationMinutes = 60)
@@ -83,7 +83,7 @@ public class S3Service
     /// <summary>
     /// Deletes an object from S3
     /// </summary>
-    public async Task<bool> DeleteObjectAsync(string bucketName, string key)
+    public virtual async Task<bool> DeleteObjectAsync(string bucketName, string key)
     {
         try
         {
@@ -108,7 +108,7 @@ public class S3Service
     /// <summary>
     /// Checks if an object exists in S3
     /// </summary>
-    public async Task<bool> ObjectExistsAsync(string bucketName, string key)
+    public virtual async Task<bool> ObjectExistsAsync(string bucketName, string key)
     {
         try
         {
@@ -132,7 +132,7 @@ public class S3Service
     /// Generates a storage key (path) for media files
     /// Format: users/{userId}/{guid}/{filename}
     /// </summary>
-    public string GenerateStorageKey(Guid userId, string originalFileName)
+    public virtual string GenerateStorageKey(Guid userId, string originalFileName)
     {
         var fileExtension = Path.GetExtension(originalFileName);
         var fileName = $"{Guid.NewGuid()}{fileExtension}";
@@ -142,7 +142,7 @@ public class S3Service
     /// <summary>
     /// Downloads an object from S3 as a byte array
     /// </summary>
-    public async Task<byte[]> DownloadObjectAsync(string bucketName, string key)
+    public virtual async Task<byte[]> DownloadObjectAsync(string bucketName, string key)
     {
         try
         {
@@ -171,7 +171,7 @@ public class S3Service
     /// <summary>
     /// Uploads a byte array as an object to S3
     /// </summary>
-    public async Task<bool> PutObjectAsync(string bucketName, string key, byte[] data, string contentType = "application/octet-stream")
+    public virtual async Task<bool> PutObjectAsync(string bucketName, string key, byte[] data, string contentType = "application/octet-stream")
     {
         try
         {

@@ -9,6 +9,7 @@ using JournalAI.Backend.Services;
 using JournalAI.Backend.Data;
 using JournalAI.Backend.Data.Dtos;
 using System.Security.Claims;
+using Hangfire;
 
 namespace JournalAI.Backend.Tests;
 
@@ -29,6 +30,7 @@ public class MediaControllerTests : IDisposable
         _mediaServiceMock = new Mock<MediaService>(MockBehavior.Loose,
             It.IsAny<AppDbContext>(),
             It.IsAny<S3Service>(),
+            It.IsAny<JobSchedulerService>(),
             It.IsAny<ILogger<MediaService>>()
         );
         _configurationMock = new Mock<IConfiguration>(MockBehavior.Loose);

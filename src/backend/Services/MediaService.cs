@@ -43,7 +43,7 @@ public class MediaService
     /// <summary>
     /// Validates file before upload (MIME type, size)
     /// </summary>
-    public void ValidateMediaUpload(string mimeType, long fileSize)
+    public virtual void ValidateMediaUpload(string mimeType, long fileSize)
     {
         if (!AllowedMimeTypes.Contains(mimeType))
         {
@@ -59,7 +59,7 @@ public class MediaService
     /// <summary>
     /// Creates a presigned URL for upload
     /// </summary>
-    public async Task<PresignedUrlDto> InitiateUploadAsync(
+    public virtual async Task<PresignedUrlDto> InitiateUploadAsync(
         Guid userId,
         string originalFileName,
         string mimeType,
@@ -88,7 +88,7 @@ public class MediaService
     /// <summary>
     /// Creates a Media record after successful S3 upload
     /// </summary>
-    public async Task<MediaResponseDto> FinalizeUploadAsync(
+    public virtual async Task<MediaResponseDto> FinalizeUploadAsync(
         Guid userId,
         CompleteUploadDto dto,
         string bucketName)
@@ -142,7 +142,7 @@ public class MediaService
     /// <summary>
     /// Retrieves media by ID (with ownership verification)
     /// </summary>
-    public async Task<MediaResponseDto?> GetMediaAsync(Guid mediaId, Guid userId)
+    public virtual async Task<MediaResponseDto?> GetMediaAsync(Guid mediaId, Guid userId)
     {
         var media = await _context.Media
             .FirstOrDefaultAsync(m => m.Id == mediaId && m.UserId == userId);
@@ -159,7 +159,7 @@ public class MediaService
     /// <summary>
     /// Retrieves all media for a user, optionally filtered by entry
     /// </summary>
-    public async Task<List<MediaResponseDto>> GetUserMediaAsync(Guid userId, Guid? entryId = null)
+    public virtual async Task<List<MediaResponseDto>> GetUserMediaAsync(Guid userId, Guid? entryId = null)
     {
         var query = _context.Media.Where(m => m.UserId == userId);
 
@@ -175,7 +175,7 @@ public class MediaService
     /// <summary>
     /// Deletes media and removes from S3
     /// </summary>
-    public async Task<bool> DeleteMediaAsync(Guid mediaId, Guid userId, string bucketName)
+    public virtual async Task<bool> DeleteMediaAsync(Guid mediaId, Guid userId, string bucketName)
     {
         var media = await _context.Media
             .FirstOrDefaultAsync(m => m.Id == mediaId && m.UserId == userId);
@@ -223,7 +223,7 @@ public class MediaService
     /// <summary>
     /// Associates media with an entry
     /// </summary>
-    public async Task<bool> AssociateWithEntryAsync(Guid mediaId, Guid entryId, Guid userId)
+    public virtual async Task<bool> AssociateWithEntryAsync(Guid mediaId, Guid entryId, Guid userId)
     {
         var media = await _context.Media
             .FirstOrDefaultAsync(m => m.Id == mediaId && m.UserId == userId);
@@ -252,7 +252,7 @@ public class MediaService
     /// <summary>
     /// Updates thumbnail URL after generation
     /// </summary>
-    public async Task<bool> UpdateThumbnailAsync(Guid mediaId, string thumbnailUrl, Guid userId)
+    public virtual async Task<bool> UpdateThumbnailAsync(Guid mediaId, string thumbnailUrl, Guid userId)
     {
         var media = await _context.Media
             .FirstOrDefaultAsync(m => m.Id == mediaId && m.UserId == userId);
