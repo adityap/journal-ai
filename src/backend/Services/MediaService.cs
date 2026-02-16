@@ -14,6 +14,7 @@ public class MediaService
 {
     private readonly AppDbContext _context;
     private readonly S3Service _s3Service;
+    private readonly JobSchedulerService _jobScheduler;
     private readonly ILogger<MediaService> _logger;
     private const long MaxFileSizeBytes = 100 * 1024 * 1024; // 100 MB
     private static readonly HashSet<string> AllowedMimeTypes = new()
@@ -27,10 +28,15 @@ public class MediaService
         "application/pdf"
     };
 
-    public MediaService(AppDbContext context, S3Service s3Service, ILogger<MediaService> logger)
+    public MediaService(
+        AppDbContext context,
+        S3Service s3Service,
+        JobSchedulerService jobScheduler,
+        ILogger<MediaService> logger)
     {
         _context = context;
         _s3Service = s3Service;
+        _jobScheduler = jobScheduler;
         _logger = logger;
     }
 
@@ -114,6 +120,21 @@ public class MediaService
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Finalized upload for user {UserId}: media {MediaId}", userId, media.Id);
+
+        // Schedule thumbnail generation for images
+        if (IsImageType(dto.MimeType))
+        {
+            try
+            {
+                _jobScheduler.ScheduleThumbnailGeneration(media.Id, bucketName);
+                _logger.LogInformation("Scheduled thumbnail generation for media {MediaId}", media.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to schedule thumbnail generation for media {MediaId}", media.Id);
+                // Don't fail the upload if thumbnail scheduling fails
+            }
+        }
 
         return MapToResponseDto(media);
     }
@@ -246,6 +267,21 @@ public class MediaService
 
         _logger.LogInformation("Updated thumbnail for media {MediaId}", mediaId);
         return true;
+    }
+
+    /// <summary>
+    /// Helper: Checks if MIME type is an image (for thumbnail generation)
+    /// </summary>
+    private bool IsImageType(string mimeType)
+    {
+        var imageTypes = new[] 
+        { 
+            "image/jpeg", 
+            "image/png", 
+            "image/gif", 
+            "image/webp" 
+        };
+        return imageTypes.Contains(mimeType.ToLower());
     }
 
     /// <summary>

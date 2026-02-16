@@ -138,4 +138,62 @@ public class S3Service
         var fileName = $"{Guid.NewGuid()}{fileExtension}";
         return $"users/{userId}/{fileName}";
     }
+
+    /// <summary>
+    /// Downloads an object from S3 as a byte array
+    /// </summary>
+    public async Task<byte[]> DownloadObjectAsync(string bucketName, string key)
+    {
+        try
+        {
+            var request = new GetObjectRequest
+            {
+                BucketName = bucketName,
+                Key = key
+            };
+
+            using (var response = await _s3Client.GetObjectAsync(request))
+            using (var memoryStream = new MemoryStream())
+            {
+                await response.ResponseStream.CopyToAsync(memoryStream);
+                var bytes = memoryStream.ToArray();
+                _logger.LogInformation("Downloaded object {Key} from bucket {Bucket} ({Bytes} bytes)", key, bucketName, bytes.Length);
+                return bytes;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to download object {Key} from bucket {Bucket}", key, bucketName);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Uploads a byte array as an object to S3
+    /// </summary>
+    public async Task<bool> PutObjectAsync(string bucketName, string key, byte[] data, string contentType = "application/octet-stream")
+    {
+        try
+        {
+            using (var memoryStream = new MemoryStream(data))
+            {
+                var request = new PutObjectRequest
+                {
+                    BucketName = bucketName,
+                    Key = key,
+                    InputStream = memoryStream,
+                    ContentType = contentType
+                };
+
+                var response = await _s3Client.PutObjectAsync(request);
+                _logger.LogInformation("Uploaded object {Key} to bucket {Bucket} ({Bytes} bytes)", key, bucketName, data.Length);
+                return response.HttpStatusCode == System.Net.HttpStatusCode.OK;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upload object {Key} to bucket {Bucket}", key, bucketName);
+            throw;
+        }
+    }
 }

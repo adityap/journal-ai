@@ -3,6 +3,8 @@ using JournalAI.Backend.Data;
 using JournalAI.Backend.Services;
 using Amazon.S3;
 using Amazon;
+using Hangfire;
+using Hangfire.InMemory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,6 +54,32 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<EntryService>();
 builder.Services.AddScoped<S3Service>();
 builder.Services.AddScoped<MediaService>();
+builder.Services.AddScoped<JobSchedulerService>();
+
+// Add Hangfire for background job processing
+if (isDev)
+{
+    // Use in-memory storage for development
+    builder.Services.AddHangfire(config => config.UseInMemoryStorage());
+}
+else
+{
+    // Use SQL Server storage for production
+    var hangfireConnection = builder.Configuration.GetConnectionString("HangfireConnection") 
+        ?? builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? "Host=localhost;Database=journalai;Username=postgres;Password=postgres";
+    
+    builder.Services.AddHangfire(config => config
+        .UseSqlServerStorage(hangfireConnection)
+        .WithJobExpirationTimeout(TimeSpan.FromDays(7))
+    );
+}
+
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = Environment.ProcessorCount;
+    options.SchedulePollingInterval = TimeSpan.FromSeconds(5);
+});
 
 if (isDev)
 {
@@ -121,6 +149,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Configure Hangfire dashboard (production only for security)
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        DashboardTitle = "JournalAI Background Jobs"
+    });
+}
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapControllers();
