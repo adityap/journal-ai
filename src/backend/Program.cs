@@ -13,6 +13,18 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Add CORS for frontend development
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://192.168.1.3:5173", "http://192.168.1.3:5174")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
 // Add AWS S3 Client
 var isDev = builder.Environment.IsDevelopment();
 if (isDev)
@@ -57,23 +69,8 @@ builder.Services.AddScoped<MediaService>();
 builder.Services.AddScoped<JobSchedulerService>();
 
 // Add Hangfire for background job processing
-if (isDev)
-{
-    // Use in-memory storage for development
-    builder.Services.AddHangfire(config => config.UseInMemoryStorage());
-}
-else
-{
-    // Use SQL Server storage for production
-    var hangfireConnection = builder.Configuration.GetConnectionString("HangfireConnection") 
-        ?? builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? "Host=localhost;Database=journalai;Username=postgres;Password=postgres";
-    
-    builder.Services.AddHangfire(config => config
-        .UseSqlServerStorage(hangfireConnection)
-        .WithJobExpirationTimeout(TimeSpan.FromDays(7))
-    );
-}
+// Always use in-memory storage (sufficient for current needs)
+builder.Services.AddHangfire(config => config.UseInMemoryStorage());
 
 builder.Services.AddHangfireServer(options =>
 {
@@ -147,6 +144,7 @@ if (app.Environment.IsDevelopment())
     }
 }
 
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -144,7 +144,8 @@ export const getConfidentialityColor = (
   }
 };
 
-export default {
+// Named export for compatibility
+export const entriesClient = {
   listEntries,
   getEntry,
   createEntry,
@@ -154,3 +155,5 @@ export default {
   formatEntryDate,
   getConfidentialityColor,
 };
+
+export default entriesClient;

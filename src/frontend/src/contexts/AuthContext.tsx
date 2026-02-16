@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import axios from 'axios';
+import { apiClient } from '../services/apiClient';
 
 interface User {
   id: string;
@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
       // Set default authorization header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
     }
 
     setLoading(false);
@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError(null);
       setLoading(true);
 
-      const response = await axios.post('/api/v1/auth/register', {
+      const response = await apiClient.post('/auth/register', {
         email,
         password,
       });
@@ -60,10 +60,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('user', JSON.stringify(newUser));
 
       // Set default authorization header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     } catch (err) {
-      const message = axios.isAxiosError(err) && err.response?.data?.message
-        ? err.response.data.message
+      const message = err instanceof Error && (err as any).response?.data?.message
+        ? (err as any).response.data.message
         : 'Registration failed. Please try again.';
       setError(message);
       throw err;
@@ -77,7 +77,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError(null);
       setLoading(true);
 
-      const response = await axios.post('/api/v1/auth/login', {
+      const response = await apiClient.post('/auth/login', {
         email,
         password,
       });
@@ -92,10 +92,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('user', JSON.stringify(loggedInUser));
 
       // Set default authorization header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     } catch (err) {
-      const message = axios.isAxiosError(err) && err.response?.data?.message
-        ? err.response.data.message
+      const message = err instanceof Error && (err as any).response?.data?.message
+        ? (err as any).response.data.message
         : 'Login failed. Please check your credentials.';
       setError(message);
       throw err;
@@ -114,7 +114,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('user');
 
     // Remove authorization header
-    delete axios.defaults.headers.common['Authorization'];
+    delete apiClient.defaults.headers.common['Authorization'];
   };
 
   const value: AuthContextType = {
