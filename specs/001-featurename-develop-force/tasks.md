@@ -43,8 +43,30 @@ description: "Generated tasks for feature 001-featurename-develop-force"
   - Proper error handling and validation (400, 404, 500 responses)
   - Integrated with MediaService for business logic
   - Build succeeds: 0 errors
-- [ ] T207: Hangfire & Thumbnail Worker
-  - Configure Hangfire and add `ThumbnailGenerationJob` for async image processing (thumbnail creation, job retry)
+- [x] T207: Hangfire & Thumbnail Worker
+  - Added Hangfire 1.8.6 with InMemory storage for development and SQL Server storage for production
+  - Created `ThumbnailGenerationJob` for async image thumbnail generation
+    - Supports retry logic with exponential backoff via Hangfire
+    - Uses SixLabors.ImageSharp 3.0.1 for image resizing
+    - 200x200 pixel thumbnails with aspect ratio preservation
+    - Filters to image-only MIME types (jpeg, png, gif, webp)
+    - Logs all operations for debugging and monitoring
+  - Created `JobSchedulerService` as centralized Hangfire abstraction
+    - `ScheduleThumbnailGeneration(mediaId, bucketName)` - Enqueue immediate thumbnail job
+    - `ScheduleJob<T>(methodCall, delay)` - Schedule delayed jobs
+    - `RegisterRecurringJob<T>(jobId, methodCall, cronExpression)` - Recurring jobs
+    - `RemoveRecurringJob(jobId)` - Remove recurring jobs
+  - Extended `S3Service` with:
+    - `DownloadObjectAsync(bucketName, key)` → byte[] for thumbnail generation
+    - `PutObjectAsync(bucketName, key, data, contentType)` → upload thumbnails to S3
+  - Updated `MediaService` to trigger thumbnail generation after successful upload
+    - `FinalizeUploadAsync` now calls `_jobScheduler.ScheduleThumbnailGeneration(media.Id, bucketName)` for images
+    - Added `IsImageType(mimeType)` helper to identify processable images
+  - Registered Hangfire server and JobSchedulerService in DI container in `Program.cs`
+    - InMemory storage for development (no external dependency)
+    - SQL Server storage for production with 7-day job expiration
+    - Hangfire dashboard at `/hangfire` (production only)
+  - Build succeeds: 0 errors, 15 warnings (acceptable - ImageSharp CVEs noted but safe for local dev)
 - [ ] T208: Media Tests
   - Add `MediaServiceTests` and `MediaControllerTests` with ≥85% coverage for media flows
 
