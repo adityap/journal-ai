@@ -39,14 +39,17 @@ export const Timeline: React.FC = () => {
         const result: PagedResult<Entry> = await listEntries(page, 20);
         
         // Log sentiment data for debugging
+        console.log('[Timeline] Raw API Response:', result);
         console.log('[Timeline] Fetched entries:', {
           count: result.items.length,
           sentiment_data: result.items.map(e => ({
             id: e.id,
             title: e.title,
             sentimentScore: e.sentimentScore,
+            sentimentScoreType: typeof e.sentimentScore,
             sentimentLabel: e.sentimentLabel,
-            bodyLength: e.bodyText?.length || 0
+            bodyLength: e.bodyText?.length || 0,
+            fullEntry: e
           }))
         });
         

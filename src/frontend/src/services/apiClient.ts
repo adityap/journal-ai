@@ -30,6 +30,7 @@ apiClient.interceptors.request.use(
     
     // Log request body for sentiment tracking
     if (config.method === 'post' && config.url?.includes('/entries')) {
+      console.error('[apiClient] 🚀 POST /entries FULL REQUEST BODY:', JSON.stringify(config.data, null, 2));
       console.log('[apiClient] POST /entries body:', {
         ...config.data,
         bodyText: config.data?.bodyText ? `"${config.data.bodyText.substring(0, 50)}..."` : null,
@@ -47,6 +48,12 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => {
     console.log('[apiClient] Response from', response.config.url, '-', response.status);
+    
+    // Special logging for entries endpoint
+    if (response.config.url?.includes('/entries') && response.config.method === 'get') {
+      console.log('[apiClient] GET /entries response data:', response.data);
+    }
+    
     return response;
   },
   (error: AxiosError) => {
@@ -64,41 +71,8 @@ apiClient.interceptors.response.use(
 );
 
 /**
- * Entry API endpoints
+ * Note: Type imports moved to entriesClient.ts to maintain single source of truth
  */
-export interface Entry {
-  id: string;
-  title?: string;
-  bodyText?: string;
-  type: string;
-  confidentiality: string;
-  categoryId?: string;
-  tags?: string[];
-  sentimentScore?: number;
-  sentimentLabel?: string;
-  createdAt: string;
-  readOnlyAfter: string;
-  immutable: boolean;
-}
-
-export interface CreateEntryRequest {
-  title?: string;
-  bodyText?: string;
-  type?: string;
-  confidentiality: string;
-  categoryId?: string;
-  tags?: string[];
-  sentimentScore?: number;
-  sentimentLabel?: string;
-  sentimentModel?: string;
-}
-
-export interface UpdateEntryRequest {
-  title?: string;
-  bodyText?: string;
-  categoryId?: string;
-  tags?: string[];
-}
 
 export interface PagedResult<T> {
   items: T[];

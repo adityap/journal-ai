@@ -140,9 +140,10 @@ export const EntryForm: React.FC = () => {
           .map((t) => t.trim())
           .filter((t) => t.length > 0),
         confidentiality,
-        sentimentScore: finalSentimentScore,
-        sentimentLabel: getSentimentLabel(finalSentimentScore),
-        sentimentModel: 'simple-keyword-analysis',
+        // TEST: Hardcode sentiment to 0.99 to verify it gets sent to backend
+        sentimentScore: 0.99,  // TEMP: Testing if sentiment reaches backend
+        sentimentLabel: "TEST-POSITIVE",
+        sentimentModel: 'test-hardcoded',
       };
 
       console.log('[EntryForm] Payload being sent:', {
@@ -162,6 +163,21 @@ export const EntryForm: React.FC = () => {
       } else {
         // Create new entry
         const createPayload: CreateEntryRequest = payload as CreateEntryRequest;
+        
+        // CRITICAL DEBUG: Log the ENTIRE payload as a JSON dump
+        const payloadJson = JSON.stringify(createPayload, null, 2);
+        console.error('[EntryForm] ⚠️ SENDING PAYLOAD:', payloadJson);
+        
+        // CRITICAL: Verify sentiment is being sent
+        if (createPayload.sentimentScore === undefined || createPayload.sentimentScore === null) {
+          console.error('[EntryForm] ERROR: sentimentScore is missing from payload!', {
+            payload,
+            createPayload,
+            stateValueOfSentiment: sentimentScore,
+            finalSentiment: finalSentimentScore
+          });
+        }
+        
         console.log('[EntryForm] CreateEntryRequest about to be sent:', {
           sentimentScore: createPayload.sentimentScore,
           sentimentLabel: createPayload.sentimentLabel,

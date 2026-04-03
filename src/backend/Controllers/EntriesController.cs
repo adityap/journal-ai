@@ -36,6 +36,13 @@ public class EntriesController : ControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateEntry([FromBody] CreateEntryDto createDto)
     {
+        // Log entire incoming DTO for debugging
+        _logger.LogInformation("CreateEntry - Full DTO: Title={Title}, BodyText={BodyText}, Confidentiality={Conf}, HasSentimentScore={HasScore}", 
+            createDto.Title?.Substring(0, Math.Min(30, createDto.Title?.Length ?? 0)) ?? "null", 
+            createDto.BodyText?.Substring(0, Math.Min(30, createDto.BodyText?.Length ?? 0)) ?? "null",
+            createDto.Confidentiality,
+            createDto.SentimentScore.HasValue);
+        
         // Log incoming sentiment data
         _logger.LogInformation("CreateEntry - Received sentiment data: Score={SentimentScore}, Label={SentimentLabel}, Model={SentimentModel}",
             createDto.SentimentScore, createDto.SentimentLabel, createDto.SentimentModel);
