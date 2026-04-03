@@ -9,6 +9,7 @@ import {
   UpdateEntryRequest,
   isEntryImmutable,
 } from '../services/entriesClient';
+import { analyzeSentiment, getSentimentLabel } from '../utils/sentimentAnalyzer';
 import { MediaUpload } from './MediaUpload';
 import { MediaLibrary } from './MediaLibrary';
 import { associateMediaWithEntry, MediaFile } from '../services/mediaClient';
@@ -24,14 +25,14 @@ export const EntryForm: React.FC = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [bodyText, setBodyText] = useState('');
-  const [categoryId, setCategoryId] = useState('');
   const [tags, setTags] = useState('');
   const [confidentiality, setConfidentiality] = useState('public');
-  const [sentimentScore, setSentimentScore] = useState('');
+  const [sentimentScore, setSentimentScore] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(true);
+  const [isImmutable, setIsImmutable] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showMediaUpload, setShowMediaUpload] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaFile | null>(null);
@@ -46,12 +47,12 @@ export const EntryForm: React.FC = () => {
           const entry = await getEntry(entryId);
           setTitle(entry.title || '');
           setBodyText(entry.bodyText || '');
-          setCategoryId(entry.categoryId || '');
           setTags(entry.tags?.join(', ') || '');
           setConfidentiality(entry.confidentiality || 'public');
           if (entry.sentimentScore) {
-            setSentimentScore(entry.sentimentScore.toString());
+            setSentimentScore(entry.sentimentScore);
           }
+          setIsImmutable(isEntryImmutable(entry));
           setIsEditing(!isEntryImmutable(entry));
         } catch (err: any) {
           const message = err.response?.data?.message || 'Failed to load entry';
@@ -65,11 +66,18 @@ export const EntryForm: React.FC = () => {
     }
   }, [entryId]);
 
-  const isImmutable = (entry: Entry): boolean => {
-    const now = new Date();
-    const readOnlyAfter = new Date(entry.readOnlyAfter);
-    return now > readOnlyAfter;
-  };
+  // Auto-calculate sentiment score when bodyText changes
+  useEffect(() => {
+    const score = analyzeSentiment(bodyText);
+    console.log('[EntryForm] Sentiment calculation triggered:', {
+      bodyTextLength: bodyText.length,
+      newScore: score,
+      previousScore: sentimentScore
+    });
+    setSentimentScore(score);
+  }, [bodyText]);
+
+
 
   /**
    * Validate form before submission
@@ -89,9 +97,7 @@ export const EntryForm: React.FC = () => {
       errors.push('Invalid confidentiality level');
     }
 
-    if (sentimentScore && (isNaN(parseFloat(sentimentScore)) || parseFloat(sentimentScore) < -1 || parseFloat(sentimentScore) > 1)) {
-      errors.push('Sentiment score must be between -1 and 1');
-    }
+
 
     setValidationErrors(errors);
     return errors.length === 0;
@@ -112,32 +118,56 @@ export const EntryForm: React.FC = () => {
     setLoading(true);
 
     try {
+      // Ensure we have the latest calculated sentiment
+      // (useEffect might not have completed if user typed and submitted quickly)
+      let finalSentimentScore = sentimentScore;
+      if (bodyText.trim() && finalSentimentScore === 0) {
+        // Recalculate in case sentiment hasn't been updated from useEffect
+        const recalculated = analyzeSentiment(bodyText);
+        console.log('[EntryForm] Recalculated sentiment on submit:', {
+          original: sentimentScore,
+          recalculated,
+          bodyText: bodyText.substring(0, 50)
+        });
+        finalSentimentScore = recalculated;
+      }
+
       const payload = {
         title: title.trim() || null,
         bodyText: bodyText.trim() || null,
-        categoryId: categoryId || null,
         tags: tags
           .split(',')
           .map((t) => t.trim())
           .filter((t) => t.length > 0),
         confidentiality,
-        sentimentScore: sentimentScore ? parseFloat(sentimentScore) : null,
-        sentimentLabel: null,
-        sentimentModel: null,
+        sentimentScore: finalSentimentScore,
+        sentimentLabel: getSentimentLabel(finalSentimentScore),
+        sentimentModel: 'simple-keyword-analysis',
       };
+
+      console.log('[EntryForm] Payload being sent:', {
+        ...payload,
+        title: payload.title ? `"${payload.title.substring(0, 50)}..."` : null,
+        bodyText: payload.bodyText ? `"${payload.bodyText.substring(0, 50)}..."` : null,
+      });
 
       if (entryId) {
         // Edit existing entry
         const updatePayload: UpdateEntryRequest = {
           title: (payload.title as string) || undefined,
           bodyText: (payload.bodyText as string) || undefined,
-          categoryId: (payload.categoryId as string) || undefined,
           tags: payload.tags,
         };
         await updateEntry(entryId, updatePayload);
       } else {
         // Create new entry
         const createPayload: CreateEntryRequest = payload as CreateEntryRequest;
+        console.log('[EntryForm] CreateEntryRequest about to be sent:', {
+          sentimentScore: createPayload.sentimentScore,
+          sentimentLabel: createPayload.sentimentLabel,
+          sentimentModel: createPayload.sentimentModel,
+          type: typeof createPayload.sentimentScore,
+        });
         const newEntry = await createEntry(createPayload);
 
         // If media was selected, associate it with the new entry
@@ -154,13 +184,21 @@ export const EntryForm: React.FC = () => {
       setSuccess(true);
       setValidationErrors([]);
 
+      console.log('[EntryForm] Entry created successfully with sentiment:', {
+        finalSentimentScore,
+        sentimentLabel: getSentimentLabel(finalSentimentScore),
+        title: title.trim(),
+        bodyLength: bodyText.length
+      });
+
+      // Update state to track what was submitted for the success message
+      setSentimentScore(finalSentimentScore);
+
       // Clear form
       setTitle('');
       setBodyText('');
-      setCategoryId('');
       setTags('');
       setConfidentiality('public');
-      setSentimentScore('');
 
       // Redirect after brief delay
       setTimeout(() => {
@@ -190,13 +228,13 @@ export const EntryForm: React.FC = () => {
     return <div className="entry-form loading">Loading entry...</div>;
   }
 
-  if (entryId && isEditing === false && !isEditing) {
+  if (isImmutable) {
     return (
       <div className="entry-form">
         <div className="form-alert alert-warning">
-          <p>This entry is read-only. It cannot be edited after the end of day it was created.</p>
+          <p>⏱️ This entry is read-only. Entries become immutable at the end of the day they were created (in your timezone).</p>
           <a href="/" className="btn btn-primary">
-            Back to Timeline
+            ← Back to Timeline
           </a>
         </div>
       </div>
@@ -217,7 +255,9 @@ export const EntryForm: React.FC = () => {
 
       {success && (
         <div className="form-alert alert-success" role="alert">
-          <p>Entry saved successfully! Redirecting...</p>
+          <p>✅ Entry saved successfully!</p>
+          <p>📊 Sentiment: {getSentimentLabel(sentimentScore)} ({sentimentScore.toFixed(2)})</p>
+          <p>Redirecting to timeline...</p>
         </div>
       )}
 
@@ -252,7 +292,10 @@ export const EntryForm: React.FC = () => {
           <textarea
             id="bodyText"
             value={bodyText}
-            onChange={(e) => setBodyText(e.target.value)}
+            onChange={(e) => {
+              console.log('[EntryForm] Textarea changed:', e.target.value.length, 'characters');
+              setBodyText(e.target.value);
+            }}
             placeholder="Write your journal entry here..."
             rows={8}
             disabled={loading}
@@ -275,17 +318,6 @@ export const EntryForm: React.FC = () => {
             </select>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="category">Category</label>
-            <input
-              id="category"
-              type="text"
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              placeholder="Category ID (optional)"
-              disabled={loading}
-            />
-          </div>
         </div>
 
         <div className="form-row">
@@ -302,18 +334,29 @@ export const EntryForm: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="sentiment">Sentiment Score (-1 to 1)</label>
-            <input
-              id="sentiment"
-              type="number"
-              step="0.1"
-              min="-1"
-              max="1"
-              value={sentimentScore}
-              onChange={(e) => setSentimentScore(e.target.value)}
-              placeholder="e.g., 0.5"
-              disabled={loading}
-            />
+            <label>📊 Sentiment Analysis (Real-time)</label>
+            <div className="sentiment-display">
+              <div className="sentiment-bar-bg">
+                <div
+                  className="sentiment-bar-fill"
+                  style={{
+                    width: `${((sentimentScore + 1) / 2) * 100}%`,
+                    backgroundColor:
+                      sentimentScore > 0.5
+                        ? '#4caf50'
+                        : sentimentScore > 0
+                        ? '#8bc34a'
+                        : sentimentScore > -0.5
+                        ? '#ff9800'
+                        : '#f44336',
+                    transition: 'width 0.2s ease, background-color 0.2s ease'
+                  }}
+                />
+              </div>
+              <p className="sentiment-score" style={{ margin: '0.5rem 0 0 0' }}>
+                {sentimentScore.toFixed(2)} - {getSentimentLabel(sentimentScore)}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -468,6 +511,32 @@ export const EntryForm: React.FC = () => {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1.5rem;
+        }
+
+        .sentiment-display {
+          background: #f5f5f5;
+          padding: 1rem;
+          border-radius: 4px;
+          border-left: 4px solid #1976d2;
+        }
+
+        .sentiment-bar-bg {
+          height: 24px;
+          background: #e0e0e0;
+          border-radius: 4px;
+          overflow: hidden;
+          margin-bottom: 0.5rem;
+        }
+
+        .sentiment-bar-fill {
+          height: 100%;
+          transition: width 0.3s ease;
+        }
+
+        .sentiment-score {
+          margin: 0.5rem 0 0 0;
+          font-size: 0.95rem;
+          color: #333;
         }
 
         label {

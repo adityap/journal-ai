@@ -36,13 +36,17 @@ public class EntriesController : ControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateEntry([FromBody] CreateEntryDto createDto)
     {
+        // Log incoming sentiment data
+        _logger.LogInformation("CreateEntry - Received sentiment data: Score={SentimentScore}, Label={SentimentLabel}, Model={SentimentModel}",
+            createDto.SentimentScore, createDto.SentimentLabel, createDto.SentimentModel);
+
         // Validate DTO
         var validationErrors = _entryService.ValidateCreateEntry(createDto);
         if (validationErrors.Any())
             return BadRequest(new { errors = validationErrors });
 
-        // Get current user from JWT
-        var userId = User.FindFirst("sub")?.Value;
+        // Get current user from JWT - use the mapped claim type
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
@@ -73,6 +77,10 @@ public class EntriesController : ControllerBase
             Immutable = false
         };
 
+        // Log entry data before save
+        _logger.LogInformation("CreateEntry - Entry before save: Score={SentimentScore}, Label={SentimentLabel}", 
+            entry.SentimentScore, entry.SentimentLabel);
+
         // Calculate read_only_after based on user's timezone
         entry.ReadOnlyAfter = _entryService.CalculateReadOnlyAfter(user.Timezone, entry.CreatedAt);
 
@@ -90,9 +98,13 @@ public class EntriesController : ControllerBase
         });
         await _context.SaveChangesAsync();
 
+        var responseDto = MapToDto(entry);
+        _logger.LogInformation("CreateEntry - Response DTO: Score={SentimentScore}, Label={SentimentLabel}", 
+            responseDto.SentimentScore, responseDto.SentimentLabel);
+        
         _logger.LogInformation("Entry created: {EntryId} by user {UserId}", entry.Id, user.Id);
 
-        return CreatedAtAction(nameof(GetEntry), new { id = entry.Id }, MapToDto(entry));
+        return CreatedAtAction(nameof(GetEntry), new { id = entry.Id }, responseDto);
     }
 
     /// <summary>
@@ -110,7 +122,9 @@ public class EntriesController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int perPage = 20)
     {
-        var userId = User.FindFirst("sub")?.Value;
+        // Use the mapped claim type (ClaimTypes.NameIdentifier) instead of "sub"
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        
         if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
             return Unauthorized();
 
@@ -139,9 +153,18 @@ public class EntriesController : ControllerBase
             .Take(perPage)
             .ToListAsync();
 
+        var items = entries.Select(MapToDto).ToList();
+        
+        // Log sentiment data for debugging
+        foreach (var item in items)
+        {
+            _logger.LogInformation("ListEntries - Entry {EntryId}: Title={Title}, Score={SentimentScore}, Label={SentimentLabel}",
+                item.Id, item.Title ?? "[No title]", item.SentimentScore, item.SentimentLabel ?? "[No label]");
+        }
+
         var result = new PagedResult<EntryResponseDto>
         {
-            Items = entries.Select(MapToDto).ToList(),
+            Items = items,
             TotalCount = totalCount,
             Page = page,
             PerPage = perPage,
@@ -162,7 +185,7 @@ public class EntriesController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> GetEntry(Guid id)
     {
-        var userId = User.FindFirst("sub")?.Value;
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
             return Unauthorized();
 
@@ -189,7 +212,7 @@ public class EntriesController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> UpdateEntry(Guid id, [FromBody] UpdateEntryDto updateDto)
     {
-        var userId = User.FindFirst("sub")?.Value;
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
             return Unauthorized();
 
@@ -250,7 +273,7 @@ public class EntriesController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> DeleteEntry(Guid id)
     {
-        var userId = User.FindFirst("sub")?.Value;
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
             return Unauthorized();
 

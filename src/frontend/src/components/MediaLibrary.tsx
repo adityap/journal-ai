@@ -36,8 +36,10 @@ export const MediaLibrary: React.FC<MediaLibraryProps> = ({
 
     try {
       const result = await listMediaFiles(page, 12, entryId);
-      setMediaFiles(result.items);
-      setTotalPages(result.totalPages);
+      // Safely handle the response - ensure items is an array
+      const items = result?.items || [];
+      setMediaFiles(Array.isArray(items) ? items : []);
+      setTotalPages(result?.totalPages || 0);
     } catch (err: any) {
       const message = err.response?.data?.message || 'Failed to load media';
       setError(message);

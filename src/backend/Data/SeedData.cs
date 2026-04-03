@@ -1,5 +1,5 @@
 using JournalAI.Backend.Models;
-using Microsoft.AspNetCore.Identity;
+using BCrypt.Net;
 
 namespace JournalAI.Backend.Data;
 
@@ -18,9 +18,8 @@ public static class SeedData
                 NoTrainingUse = true
             };
 
-            // Hash a default dev password (devpassword) for local development
-            var hasher = new PasswordHasher<User>();
-            user.PasswordHash = hasher.HashPassword(user, "devpassword");
+            // Hash a default dev password (devpassword) for local development using BCrypt
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword("devpassword");
 
             db.Users.Add(user);
 

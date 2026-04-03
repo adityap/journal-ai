@@ -124,6 +124,14 @@ builder.Services.AddAuthentication(options =>
                 : System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(jwtKey))
         )
     };
+    
+    // Log JWT validation settings
+    var validationKeyBytes = System.Text.Encoding.UTF8.GetBytes(jwtKey);
+    var finalValidationKeyBytes = validationKeyBytes.Length >= 32 
+        ? validationKeyBytes 
+        : System.Security.Cryptography.SHA256.HashData(validationKeyBytes);
+    Console.WriteLine($"[JWT] Validation key length: {validationKeyBytes.Length} bytes, final key length: {finalValidationKeyBytes.Length} bytes");
+    Console.WriteLine($"[JWT] Validation key derivation: {(validationKeyBytes.Length >= 32 ? "DIRECT" : "SHA256 HASHED")}");
 });
 
 builder.Services.AddAuthorization();

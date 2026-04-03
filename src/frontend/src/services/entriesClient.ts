@@ -107,11 +107,17 @@ export const deleteEntry = async (id: string): Promise<void> => {
 
 /**
  * Check if an entry is immutable (past the read-only deadline)
+ * Uses the 'immutable' flag from the backend which is more reliable
  */
 export const isEntryImmutable = (entry: Entry): boolean => {
-  const now = new Date();
-  const readOnlyAfter = new Date(entry.readOnlyAfter);
-  return now > readOnlyAfter;
+  // If the entry has an explicit immutable flag, use it
+  if (entry.immutable !== undefined) {
+    return entry.immutable;
+  }
+  // Fallback: calculate based on readOnlyAfter if immutable flag is missing
+  const nowUtc = new Date();
+  const readOnlyAfterUtc = new Date(entry.readOnlyAfter);
+  return nowUtc > readOnlyAfterUtc;
 };
 
 /**

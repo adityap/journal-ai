@@ -23,7 +23,19 @@ apiClient.interceptors.request.use(
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('[apiClient] Request to', config.url, '- Authorization header set');
+    } else {
+      console.log('[apiClient] Request to', config.url, '- NO token in auth_token');
     }
+    
+    // Log request body for sentiment tracking
+    if (config.method === 'post' && config.url?.includes('/entries')) {
+      console.log('[apiClient] POST /entries body:', {
+        ...config.data,
+        bodyText: config.data?.bodyText ? `"${config.data.bodyText.substring(0, 50)}..."` : null,
+      });
+    }
+    
     return config;
   },
   (error: AxiosError) => {
@@ -33,13 +45,20 @@ apiClient.interceptors.request.use(
 
 // Response interceptor - handle errors globally
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('[apiClient] Response from', response.config.url, '-', response.status);
+    return response;
+  },
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('auth_token');
-      window.location.href = '/login';
+    console.error('[apiClient] Error on', error.config?.url, '-', error.response?.status);
+    if (error.response?.data) {
+      console.error('[apiClient] Error response data:', error.response.data);
     }
+    
+    // NOTE: NO redirects here. Redirects are handled by ProtectedRoute component.
+    // The apiClient just logs errors and rejects the promise.
+    // This prevents page refreshes during login flow.
+    
     return Promise.reject(error);
   }
 );

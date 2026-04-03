@@ -150,7 +150,7 @@ public class AuthController : ControllerBase
     [Authorize]
     public IActionResult Logout()
     {
-        var userId = User.FindFirst("sub")?.Value;
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         _logger.LogInformation("User logged out: {UserId}", userId);
         
         return Ok(new
@@ -166,8 +166,8 @@ public class AuthController : ControllerBase
     [Authorize]
     public IActionResult GetCurrentUser()
     {
-        var userId = User.FindFirst("sub")?.Value;
-        var email = User.FindFirst("email")?.Value;
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
         var timezone = User.FindFirst("timezone")?.Value;
 
         if (string.IsNullOrEmpty(userId))

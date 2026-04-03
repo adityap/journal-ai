@@ -37,9 +37,31 @@ export const Timeline: React.FC = () => {
 
       try {
         const result: PagedResult<Entry> = await listEntries(page, 20);
+        
+        // Log sentiment data for debugging
+        console.log('[Timeline] Fetched entries:', {
+          count: result.items.length,
+          sentiment_data: result.items.map(e => ({
+            id: e.id,
+            title: e.title,
+            sentimentScore: e.sentimentScore,
+            sentimentLabel: e.sentimentLabel,
+            bodyLength: e.bodyText?.length || 0
+          }))
+        });
+        
         setEntries(result.items);
         setTotalPages(result.totalPages);
       } catch (err: any) {
+        // Check if it's a 401 - likely means token is stale
+        if (err.response?.status === 401) {
+          console.error('[Timeline] Got 401 - token is likely stale. Clearing storage and redirecting to login...');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          navigate('/login', { replace: true });
+          return;
+        }
+        
         const message = err.response?.data?.message || err.message || 'Failed to load entries';
         setError(message);
         setEntries([]);
@@ -49,7 +71,7 @@ export const Timeline: React.FC = () => {
     };
 
     fetchEntries();
-  }, [page]);
+  }, [page, navigate]);
 
   const handleEdit = (entryId: string) => {
     navigate(`/entries/${entryId}/edit`);
@@ -63,10 +85,26 @@ export const Timeline: React.FC = () => {
     setDeleting(entryId);
     try {
       await deleteEntry(entryId);
+      // Remove from list immediately on success
       setEntries(entries.filter((e) => e.id !== entryId));
+      setError(null); // Clear any previous errors
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Failed to delete entry';
+      console.error('[Timeline] Delete failed:', err);
+      
+      // Provide specific error messages based on status code
+      let message = 'Failed to delete entry';
+      if (err.response?.status === 403) {
+        message = '⏱️ This entry is read-only and cannot be deleted. Entries become immutable at the end of the day they were created.';
+      } else if (err.response?.status === 404) {
+        message = 'Entry not found. It may have already been deleted.';
+      } else if (err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err.message) {
+        message = err.message;
+      }
+      
       setError(message);
+      console.error('[Timeline] Error message:', message);
     } finally {
       setDeleting(null);
     }
@@ -84,6 +122,26 @@ export const Timeline: React.FC = () => {
     return !isEntryImmutable(entry);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    navigate('/login', { replace: true });
+  };
+
+  const getAuthUser = () => {
+    const userStr = localStorage.getItem('auth_user');
+    if (userStr) {
+      try {
+        return JSON.parse(userStr);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const user = getAuthUser();
+
   if (loading && entries.length === 0) {
     return (
       <div className="timeline-container">
@@ -97,91 +155,25 @@ export const Timeline: React.FC = () => {
     return (
       <div className="timeline-container">
         <div className="timeline-header">
-          <h1>My Journal Entries</h1>
-          <div className="timeline-actions">
-            <div className="view-mode-selector">
-              <button
-                className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                onClick={() => setViewMode('list')}
-                title="List View"
-              >
-                📋 List
-              </button>
-              <button
-                className={`view-btn ${viewMode === 'mindmap' ? 'active' : ''}`}
-                onClick={() => setViewMode('mindmap')}
-                title="Mindmap View"
-              >
-                🧠 Mindmap
-              </button>
-              <button
-                className={`view-btn ${viewMode === 'sentiment' ? 'active' : ''}`}
-                onClick={() => setViewMode('sentiment')}
-                title="Sentiment Trends"
-              >
-                📈 Sentiment
-              </button>
-            </div>
-            <button
-              className="create-entry-btn"
-              onClick={() => navigate('/entries/new')}
-            >
-              + New Entry
-            </button>
+          <div className="timeline-header-left">
+            <h1>My Journal Entries</h1>
+          </div>
+          <div className="timeline-header-right">
+            {user && (
+              <div className="user-info">
+                <span className="user-email">👤 {user.email}</span>
+                <button
+                  className="logout-btn"
+                  onClick={handleLogout}
+                  title="Logout"
+                >
+                  🚪 Logout
+                </button>
+              </div>
+            )}
           </div>
         </div>
-        <MindmapView />
-      </div>
-    );
-  }
 
-  if (viewMode === 'sentiment') {
-    return (
-      <div className="timeline-container">
-        <div className="timeline-header">
-          <h1>My Journal Entries</h1>
-          <div className="timeline-actions">
-            <div className="view-mode-selector">
-              <button
-                className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                onClick={() => setViewMode('list')}
-                title="List View"
-              >
-                📋 List
-              </button>
-              <button
-                className={`view-btn ${viewMode === 'mindmap' ? 'active' : ''}`}
-                onClick={() => setViewMode('mindmap')}
-                title="Mindmap View"
-              >
-                🧠 Mindmap
-              </button>
-              <button
-                className={`view-btn ${viewMode === 'sentiment' ? 'active' : ''}`}
-                onClick={() => setViewMode('sentiment')}
-                title="Sentiment Trends"
-              >
-                📈 Sentiment
-              </button>
-            </div>
-            <button
-              className="create-entry-btn"
-              onClick={() => navigate('/entries/new')}
-            >
-              + New Entry
-            </button>
-          </div>
-        </div>
-        <SentimentChart />
-      </div>
-    );
-  }
-
-  // List view (default)
-  return (
-    <div className="timeline-container">
-      <div className="timeline-header">
-        <h1>My Journal Entries</h1>
         <div className="timeline-actions">
           <div className="view-mode-selector">
             <button
@@ -213,6 +205,123 @@ export const Timeline: React.FC = () => {
             + New Entry
           </button>
         </div>
+        <MindmapView />
+      </div>
+    );
+  }
+
+  if (viewMode === 'sentiment') {
+    return (
+      <div className="timeline-container">
+        <div className="timeline-header">
+          <div className="timeline-header-left">
+            <h1>My Journal Entries</h1>
+          </div>
+          <div className="timeline-header-right">
+            {user && (
+              <div className="user-info">
+                <span className="user-email">👤 {user.email}</span>
+                <button
+                  className="logout-btn"
+                  onClick={handleLogout}
+                  title="Logout"
+                >
+                  🚪 Logout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="timeline-actions">
+          <div className="view-mode-selector">
+            <button
+              className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => setViewMode('list')}
+              title="List View"
+            >
+              📋 List
+            </button>
+            <button
+              className={`view-btn ${viewMode === 'mindmap' ? 'active' : ''}`}
+              onClick={() => setViewMode('mindmap')}
+              title="Mindmap View"
+            >
+              🧠 Mindmap
+            </button>
+            <button
+              className={`view-btn ${viewMode === 'sentiment' ? 'active' : ''}`}
+              onClick={() => setViewMode('sentiment')}
+              title="Sentiment Trends"
+            >
+              📈 Sentiment
+            </button>
+          </div>
+          <button
+            className="create-entry-btn"
+            onClick={() => navigate('/entries/new')}
+          >
+            + New Entry
+          </button>
+        </div>
+        <SentimentChart />
+      </div>
+    );
+  }
+
+  // List view (default)
+  return (
+    <div className="timeline-container">
+      <div className="timeline-header">
+        <div className="timeline-header-left">
+          <h1>My Journal Entries</h1>
+        </div>
+        <div className="timeline-header-right">
+          {user && (
+            <div className="user-info">
+              <span className="user-email">👤 {user.email}</span>
+              <button
+                className="logout-btn"
+                onClick={handleLogout}
+                title="Logout"
+              >
+                🚪 Logout
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="timeline-actions">
+        <div className="view-mode-selector">
+          <button
+            className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+            onClick={() => setViewMode('list')}
+            title="List View"
+          >
+            📋 List
+          </button>
+          <button
+            className={`view-btn ${viewMode === 'mindmap' ? 'active' : ''}`}
+            onClick={() => setViewMode('mindmap')}
+            title="Mindmap View"
+          >
+            🧠 Mindmap
+          </button>
+          <button
+            className={`view-btn ${viewMode === 'sentiment' ? 'active' : ''}`}
+            onClick={() => setViewMode('sentiment')}
+            title="Sentiment Trends"
+          >
+            📈 Sentiment
+          </button>
+        </div>
+        <button
+          className="create-entry-btn"
+          onClick={() => navigate('/entries/new')}
+        >
+          + New Entry
+        </button>
       </div>
 
       {error && (
