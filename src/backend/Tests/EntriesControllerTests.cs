@@ -62,8 +62,10 @@ public class EntriesControllerTests : IAsyncLifetime
         var mockControllerLogger = new Mock<ILogger<EntriesController>>();
         _controller = new EntriesController(_dbContext, _service, mockControllerLogger.Object);
 
-        // Setup controller context with user claim
-        var claims = new List<Claim> { new Claim("sub", _testUserId.ToString()) };
+        // Setup controller context with user claim.
+        // The real JWT middleware maps the token's "sub" claim to ClaimTypes.NameIdentifier,
+        // which is what EntriesController reads — mirror that here.
+        var claims = new List<Claim> { new Claim(ClaimTypes.NameIdentifier, _testUserId.ToString()) };
         var identity = new ClaimsIdentity(claims);
         var principal = new ClaimsPrincipal(identity);
         _controller.ControllerContext = new ControllerContext

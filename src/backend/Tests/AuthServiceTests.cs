@@ -31,9 +31,9 @@ public class AuthServiceTests : IDisposable
         _mockLogger = new Mock<ILogger<AuthService>>();
         _mockConfig = new Mock<IConfiguration>();
 
-        _mockConfig.Setup(x => x["Jwt:Secret"]).Returns("this-is-a-super-secret-key-for-testing-jwt-tokens");
-        _mockConfig.Setup(x => x["Jwt:Issuer"]).Returns("journal-ai");
-        _mockConfig.Setup(x => x["Jwt:Audience"]).Returns("journal-ai-users");
+        _mockConfig.Setup(x => x["Jwt:Key"]).Returns("this-is-a-super-secret-key-for-testing-jwt-tokens");
+        _mockConfig.Setup(x => x["Jwt:Issuer"]).Returns("journalai");
+        _mockConfig.Setup(x => x["Jwt:Audience"]).Returns("journalai-users");
         _mockConfig.Setup(x => x["Jwt:ExpiryMinutes"]).Returns("1440");
 
         _authService = new AuthService(_context, _mockConfig.Object, _mockLogger.Object);

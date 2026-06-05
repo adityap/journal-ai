@@ -164,16 +164,23 @@ public class AuthService
     {
         try
         {
-            var jwtSecret = _configuration["Jwt:Secret"];
+            // Use the SAME config key and key derivation as GenerateJWT/Program.cs so a token
+            // we issue validates against the same signing key. Previously read "Jwt:Secret"
+            // with hyphenated issuer/audience defaults, which never matched what we sign.
+            var jwtSecret = _configuration["Jwt:Key"];
             if (string.IsNullOrEmpty(jwtSecret))
             {
                 return false;
             }
 
-            var jwtIssuer = _configuration["Jwt:Issuer"] ?? "journal-ai";
-            var jwtAudience = _configuration["Jwt:Audience"] ?? "journal-ai-users";
+            var jwtIssuer = _configuration["Jwt:Issuer"] ?? "journalai";
+            var jwtAudience = _configuration["Jwt:Audience"] ?? "journalai-users";
 
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
+            var keyBytes = Encoding.UTF8.GetBytes(jwtSecret);
+            var finalKeyBytes = keyBytes.Length >= 32
+                ? keyBytes
+                : System.Security.Cryptography.SHA256.HashData(keyBytes);
+            var securityKey = new SymmetricSecurityKey(finalKeyBytes);
             var tokenHandler = new JwtSecurityTokenHandler();
 
             tokenHandler.ValidateToken(token, new TokenValidationParameters
