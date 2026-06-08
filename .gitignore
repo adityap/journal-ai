@@ -28,6 +28,10 @@ dist/
 build/
 coverage/
 .turbo/
+# TypeScript / Vite generated artifacts
+*.tsbuildinfo
+src/frontend/vite.config.js
+src/frontend/vite.config.d.ts
 
 # Environment
 .env

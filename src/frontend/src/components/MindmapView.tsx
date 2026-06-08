@@ -47,7 +47,7 @@ export const MindmapView: React.FC = () => {
     const tagGroups: Record<string, Entry[]> = {};
 
     entries.forEach((entry) => {
-      const category = entry.category || 'Uncategorized';
+      const category = entry.categoryId || 'Uncategorized';
       if (!categoryGroups[category]) {
         categoryGroups[category] = [];
       }
@@ -73,7 +73,7 @@ export const MindmapView: React.FC = () => {
         color: getCategoryColor(category),
         children: items.slice(0, 5).map((entry) => ({
           id: entry.id,
-          label: entry.title || entry.body.substring(0, 30) + '...',
+          label: entry.title || (entry.bodyText || '').substring(0, 30) + '...',
           value: 1,
           color: getSentimentColor(entry.sentimentScore || 0.5)
         }))
@@ -116,7 +116,7 @@ export const MindmapView: React.FC = () => {
   const renderMindmapNode = (
     node: MindmapNode,
     depth: number = 0,
-    index: number = 0
+    _index: number = 0
   ): React.ReactNode => {
     const isExpanded = expandedNodes.has(node.id);
     const hasChildren = node.children && node.children.length > 0;

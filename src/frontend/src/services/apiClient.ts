@@ -60,62 +60,7 @@ export interface ErrorResponse {
   errors?: Record<string, string[]>;
 }
 
-/**
- * List entries with pagination and filtering
- */
-export const listEntries = async (
-  page: number = 1,
-  perPage: number = 20,
-  filters?: {
-    start?: Date;
-    end?: Date;
-    categoryId?: string;
-    tag?: string;
-  }
-): Promise<PagedResult<Entry>> => {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    perPage: perPage.toString(),
-  });
-
-  if (filters?.start) params.append('start', filters.start.toISOString());
-  if (filters?.end) params.append('end', filters.end.toISOString());
-  if (filters?.categoryId) params.append('categoryId', filters.categoryId);
-  if (filters?.tag) params.append('tag', filters.tag);
-
-  const response = await apiClient.get<PagedResult<Entry>>(`/entries?${params}`);
-  return response.data;
-};
-
-/**
- * Get a single entry by ID
- */
-export const getEntry = async (id: string): Promise<Entry> => {
-  const response = await apiClient.get<Entry>(`/entries/${id}`);
-  return response.data;
-};
-
-/**
- * Create a new entry
- */
-export const createEntry = async (data: CreateEntryRequest): Promise<Entry> => {
-  const response = await apiClient.post<Entry>('/entries', data);
-  return response.data;
-};
-
-/**
- * Update an existing entry
- */
-export const updateEntry = async (id: string, data: UpdateEntryRequest): Promise<Entry> => {
-  const response = await apiClient.patch<Entry>(`/entries/${id}`, data);
-  return response.data;
-};
-
-/**
- * Delete an entry
- */
-export const deleteEntry = async (id: string): Promise<void> => {
-  await apiClient.delete(`/entries/${id}`);
-};
+// Entry CRUD helpers live in entriesClient.ts (single source of truth);
+// this module only owns the shared axios instance and response types.
 
 export default apiClient;

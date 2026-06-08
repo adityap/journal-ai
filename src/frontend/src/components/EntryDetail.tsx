@@ -171,14 +171,9 @@ export const EntryDetail: React.FC = () => {
           <span className="metadata-item">
             📅 {formatDate(entry.createdAt)}
           </span>
-          {entry.updatedAt && entry.updatedAt !== entry.createdAt && (
+          {entry.categoryId && (
             <span className="metadata-item">
-              ✏️ Updated {formatDate(entry.updatedAt)}
-            </span>
-          )}
-          {entry.category && (
-            <span className="metadata-item">
-              📁 {entry.category}
+              📁 {entry.categoryId}
             </span>
           )}
           <span
@@ -202,7 +197,7 @@ export const EntryDetail: React.FC = () => {
         )}
 
         <div className="entry-detail-body">
-          {entry.body}
+          {entry.bodyText}
         </div>
 
         {entry.tags && entry.tags.length > 0 && (

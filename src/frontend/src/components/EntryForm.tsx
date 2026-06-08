@@ -4,7 +4,6 @@ import {
   createEntry,
   updateEntry,
   getEntry,
-  Entry,
   CreateEntryRequest,
   UpdateEntryRequest,
   isEntryImmutable,
@@ -31,7 +30,6 @@ export const EntryForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [isEditing, setIsEditing] = useState(true);
   const [isImmutable, setIsImmutable] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showMediaUpload, setShowMediaUpload] = useState(false);
@@ -53,7 +51,6 @@ export const EntryForm: React.FC = () => {
             setSentimentScore(entry.sentimentScore);
           }
           setIsImmutable(isEntryImmutable(entry));
-          setIsEditing(!isEntryImmutable(entry));
         } catch (err: any) {
           const message = err.response?.data?.message || 'Failed to load entry';
           setError(message);

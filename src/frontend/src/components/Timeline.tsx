@@ -13,6 +13,32 @@ import { MindmapView } from './MindmapView';
 import { SentimentChart } from './SentimentChart';
 import '../styles/entry.css';
 
+type ViewMode = 'list' | 'mindmap' | 'sentiment';
+
+const VIEW_MODES: { mode: ViewMode; label: string; title: string }[] = [
+  { mode: 'list', label: '📋 List', title: 'List View' },
+  { mode: 'mindmap', label: '🧠 Mindmap', title: 'Mindmap View' },
+  { mode: 'sentiment', label: '📈 Sentiment', title: 'Sentiment Trends' },
+];
+
+const ViewModeSelector: React.FC<{
+  viewMode: ViewMode;
+  onChange: (mode: ViewMode) => void;
+}> = ({ viewMode, onChange }) => (
+  <div className="view-mode-selector">
+    {VIEW_MODES.map(({ mode, label, title }) => (
+      <button
+        key={mode}
+        className={`view-btn ${viewMode === mode ? 'active' : ''}`}
+        onClick={() => onChange(mode)}
+        title={title}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+);
+
 /**
  * Timeline Component
  * Displays a list of journal entries with pagination, confidentiality badges,
@@ -27,7 +53,7 @@ export const Timeline: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'mindmap' | 'sentiment'>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   // Load entries on page change
   useEffect(() => {
@@ -163,29 +189,7 @@ export const Timeline: React.FC = () => {
         </div>
 
         <div className="timeline-actions">
-          <div className="view-mode-selector">
-            <button
-              className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => setViewMode('list')}
-              title="List View"
-            >
-              📋 List
-            </button>
-            <button
-              className={`view-btn ${viewMode === 'mindmap' ? 'active' : ''}`}
-              onClick={() => setViewMode('mindmap')}
-              title="Mindmap View"
-            >
-              🧠 Mindmap
-            </button>
-            <button
-              className={`view-btn ${viewMode === 'sentiment' ? 'active' : ''}`}
-              onClick={() => setViewMode('sentiment')}
-              title="Sentiment Trends"
-            >
-              📈 Sentiment
-            </button>
-          </div>
+          <ViewModeSelector viewMode={viewMode} onChange={setViewMode} />
           <button
             className="create-entry-btn"
             onClick={() => navigate('/entries/new')}
@@ -222,29 +226,7 @@ export const Timeline: React.FC = () => {
         </div>
 
         <div className="timeline-actions">
-          <div className="view-mode-selector">
-            <button
-              className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => setViewMode('list')}
-              title="List View"
-            >
-              📋 List
-            </button>
-            <button
-              className={`view-btn ${viewMode === 'mindmap' ? 'active' : ''}`}
-              onClick={() => setViewMode('mindmap')}
-              title="Mindmap View"
-            >
-              🧠 Mindmap
-            </button>
-            <button
-              className={`view-btn ${viewMode === 'sentiment' ? 'active' : ''}`}
-              onClick={() => setViewMode('sentiment')}
-              title="Sentiment Trends"
-            >
-              📈 Sentiment
-            </button>
-          </div>
+          <ViewModeSelector viewMode={viewMode} onChange={setViewMode} />
           <button
             className="create-entry-btn"
             onClick={() => navigate('/entries/new')}
@@ -281,29 +263,7 @@ export const Timeline: React.FC = () => {
       </div>
 
       <div className="timeline-actions">
-        <div className="view-mode-selector">
-          <button
-            className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-            onClick={() => setViewMode('list')}
-            title="List View"
-          >
-            📋 List
-          </button>
-          <button
-            className={`view-btn ${viewMode === 'mindmap' ? 'active' : ''}`}
-            onClick={() => setViewMode('mindmap')}
-            title="Mindmap View"
-          >
-            🧠 Mindmap
-          </button>
-          <button
-            className={`view-btn ${viewMode === 'sentiment' ? 'active' : ''}`}
-            onClick={() => setViewMode('sentiment')}
-            title="Sentiment Trends"
-          >
-            📈 Sentiment
-          </button>
-        </div>
+        <ViewModeSelector viewMode={viewMode} onChange={setViewMode} />
         <button
           className="create-entry-btn"
           onClick={() => navigate('/entries/new')}
