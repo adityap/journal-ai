@@ -2,6 +2,8 @@
 
 A privacy-first, open-source journaling application with rich text, images/video support, sentiment analysis, and intelligent mind-map generation.
 
+> **Current build/test status and known issues:** see [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Historical status/implementation docs are archived under [docs/archive/](docs/archive/).
+
 ## Features
 
 ✨ **Core Features**
