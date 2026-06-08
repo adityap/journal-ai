@@ -64,22 +64,18 @@ export function analyzeSentiment(text: string): number {
 
   let score = 0;
   let sentimentWordCount = 0;
-  const foundSentimentWords: Array<{word: string, type: string, score: number}> = [];
 
   for (let i = 0; i < words.length; i++) {
     const word = words[i];
     let wordScore = 0;
-    let wordType = '';
 
     // Check for positive words
     if (POSITIVE_WORDS.includes(word)) {
       wordScore = 1;
-      wordType = 'positive';
     }
     // Check for negative words
     else if (NEGATIVE_WORDS.includes(word)) {
       wordScore = -1;
-      wordType = 'negative';
     }
 
     // If we found a sentiment word, apply modifiers
@@ -112,7 +108,6 @@ export function analyzeSentiment(text: string): number {
 
       score += wordScore;
       sentimentWordCount++;
-      foundSentimentWords.push({ word, type: wordType, score: wordScore });
     }
   }
 
@@ -124,20 +119,7 @@ export function analyzeSentiment(text: string): number {
 
   // Round to 2 decimal places
   const rounded = Math.round(finalScore * 100) / 100;
-  
-  console.log('[sentimentAnalyzer]', {
-    text: text.substring(0, 100),
-    textLength: text.length,
-    words: words.slice(0, 20), // Show first 20 words
-    wordCount: words.length,
-    sentimentWordCount,
-    foundWords: foundSentimentWords,
-    score,
-    finalScore,
-    rounded,
-    label: getSentimentLabel(rounded)
-  });
-  
+
   return rounded;
 }
 

@@ -68,13 +68,7 @@ export const EntryForm: React.FC = () => {
 
   // Auto-calculate sentiment score when bodyText changes
   useEffect(() => {
-    const score = analyzeSentiment(bodyText);
-    console.log('[EntryForm] Sentiment calculation triggered:', {
-      bodyTextLength: bodyText.length,
-      newScore: score,
-      previousScore: sentimentScore
-    });
-    setSentimentScore(score);
+    setSentimentScore(analyzeSentiment(bodyText));
   }, [bodyText]);
 
 
@@ -123,13 +117,7 @@ export const EntryForm: React.FC = () => {
       let finalSentimentScore = sentimentScore;
       if (bodyText.trim() && finalSentimentScore === 0) {
         // Recalculate in case sentiment hasn't been updated from useEffect
-        const recalculated = analyzeSentiment(bodyText);
-        console.log('[EntryForm] Recalculated sentiment on submit:', {
-          original: sentimentScore,
-          recalculated,
-          bodyText: bodyText.substring(0, 50)
-        });
-        finalSentimentScore = recalculated;
+        finalSentimentScore = analyzeSentiment(bodyText);
       }
 
       const payload = {
@@ -140,17 +128,10 @@ export const EntryForm: React.FC = () => {
           .map((t) => t.trim())
           .filter((t) => t.length > 0),
         confidentiality,
-        // TEST: Hardcode sentiment to 0.99 to verify it gets sent to backend
-        sentimentScore: 0.99,  // TEMP: Testing if sentiment reaches backend
-        sentimentLabel: "TEST-POSITIVE",
-        sentimentModel: 'test-hardcoded',
+        sentimentScore: finalSentimentScore,
+        sentimentLabel: getSentimentLabel(finalSentimentScore),
+        sentimentModel: 'simple-keyword-analysis',
       };
-
-      console.log('[EntryForm] Payload being sent:', {
-        ...payload,
-        title: payload.title ? `"${payload.title.substring(0, 50)}..."` : null,
-        bodyText: payload.bodyText ? `"${payload.bodyText.substring(0, 50)}..."` : null,
-      });
 
       if (entryId) {
         // Edit existing entry
@@ -163,27 +144,6 @@ export const EntryForm: React.FC = () => {
       } else {
         // Create new entry
         const createPayload: CreateEntryRequest = payload as CreateEntryRequest;
-        
-        // CRITICAL DEBUG: Log the ENTIRE payload as a JSON dump
-        const payloadJson = JSON.stringify(createPayload, null, 2);
-        console.error('[EntryForm] ⚠️ SENDING PAYLOAD:', payloadJson);
-        
-        // CRITICAL: Verify sentiment is being sent
-        if (createPayload.sentimentScore === undefined || createPayload.sentimentScore === null) {
-          console.error('[EntryForm] ERROR: sentimentScore is missing from payload!', {
-            payload,
-            createPayload,
-            stateValueOfSentiment: sentimentScore,
-            finalSentiment: finalSentimentScore
-          });
-        }
-        
-        console.log('[EntryForm] CreateEntryRequest about to be sent:', {
-          sentimentScore: createPayload.sentimentScore,
-          sentimentLabel: createPayload.sentimentLabel,
-          sentimentModel: createPayload.sentimentModel,
-          type: typeof createPayload.sentimentScore,
-        });
         const newEntry = await createEntry(createPayload);
 
         // If media was selected, associate it with the new entry
@@ -199,13 +159,6 @@ export const EntryForm: React.FC = () => {
 
       setSuccess(true);
       setValidationErrors([]);
-
-      console.log('[EntryForm] Entry created successfully with sentiment:', {
-        finalSentimentScore,
-        sentimentLabel: getSentimentLabel(finalSentimentScore),
-        title: title.trim(),
-        bodyLength: bodyText.length
-      });
 
       // Update state to track what was submitted for the success message
       setSentimentScore(finalSentimentScore);
@@ -308,10 +261,7 @@ export const EntryForm: React.FC = () => {
           <textarea
             id="bodyText"
             value={bodyText}
-            onChange={(e) => {
-              console.log('[EntryForm] Textarea changed:', e.target.value.length, 'characters');
-              setBodyText(e.target.value);
-            }}
+            onChange={(e) => setBodyText(e.target.value)}
             placeholder="Write your journal entry here..."
             rows={8}
             disabled={loading}

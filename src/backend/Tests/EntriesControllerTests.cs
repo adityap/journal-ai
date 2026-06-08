@@ -111,6 +111,42 @@ public class EntriesControllerTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// Test: client-supplied sentiment is persisted end-to-end (regression guard).
+    /// Sentiment is computed client-side; the API must store the supplied score/label/model
+    /// and return them, and they must round-trip from the database.
+    /// </summary>
+    [Fact]
+    public async Task CreateEntry_WithSentiment_PersistsSentimentFields()
+    {
+        // Arrange
+        var createDto = new CreateEntryDto
+        {
+            Title = "Great Day",
+            BodyText = "I love this, it's amazing and wonderful!",
+            Confidentiality = "public",
+            SentimentScore = 0.8m,
+            SentimentLabel = "positive",
+            SentimentModel = "simple-keyword-analysis"
+        };
+
+        // Act
+        var result = await _controller.CreateEntry(createDto);
+
+        // Assert: returned response carries the sentiment
+        var createdResult = Assert.IsType<CreatedAtActionResult>(result);
+        var responseDto = Assert.IsType<EntryResponseDto>(createdResult.Value);
+        Assert.Equal(0.8m, responseDto.SentimentScore);
+        Assert.Equal("positive", responseDto.SentimentLabel);
+
+        // Assert: it actually round-trips from the database (not just echoed back)
+        var stored = await _dbContext.Entries.FindAsync(responseDto.Id);
+        Assert.NotNull(stored);
+        Assert.Equal(0.8m, stored!.SentimentScore);
+        Assert.Equal("positive", stored.SentimentLabel);
+        Assert.Equal("simple-keyword-analysis", stored.SentimentModel);
+    }
+
+    /// <summary>
     /// Test: POST with missing confidentiality returns 400 Bad Request
     /// </summary>
     [Fact]

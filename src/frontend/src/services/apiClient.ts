@@ -23,20 +23,7 @@ apiClient.interceptors.request.use(
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('[apiClient] Request to', config.url, '- Authorization header set');
-    } else {
-      console.log('[apiClient] Request to', config.url, '- NO token in auth_token');
     }
-    
-    // Log request body for sentiment tracking
-    if (config.method === 'post' && config.url?.includes('/entries')) {
-      console.error('[apiClient] 🚀 POST /entries FULL REQUEST BODY:', JSON.stringify(config.data, null, 2));
-      console.log('[apiClient] POST /entries body:', {
-        ...config.data,
-        bodyText: config.data?.bodyText ? `"${config.data.bodyText.substring(0, 50)}..."` : null,
-      });
-    }
-    
     return config;
   },
   (error: AxiosError) => {
@@ -46,26 +33,11 @@ apiClient.interceptors.request.use(
 
 // Response interceptor - handle errors globally
 apiClient.interceptors.response.use(
-  (response) => {
-    console.log('[apiClient] Response from', response.config.url, '-', response.status);
-    
-    // Special logging for entries endpoint
-    if (response.config.url?.includes('/entries') && response.config.method === 'get') {
-      console.log('[apiClient] GET /entries response data:', response.data);
-    }
-    
-    return response;
-  },
+  (response) => response,
   (error: AxiosError) => {
-    console.error('[apiClient] Error on', error.config?.url, '-', error.response?.status);
-    if (error.response?.data) {
-      console.error('[apiClient] Error response data:', error.response.data);
-    }
-    
     // NOTE: NO redirects here. Redirects are handled by ProtectedRoute component.
-    // The apiClient just logs errors and rejects the promise.
+    // The apiClient just rejects the promise so callers can handle the error.
     // This prevents page refreshes during login flow.
-    
     return Promise.reject(error);
   }
 );

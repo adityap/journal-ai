@@ -28,19 +28,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Initialize from localStorage on mount
   useEffect(() => {
-    console.log('[AuthContext] Initializing...');
     const storedToken = localStorage.getItem('auth_token');
     const storedUser = localStorage.getItem('auth_user');
-
-    console.log('[AuthContext] Found token in storage:', !!storedToken);
-    console.log('[AuthContext] Found user in storage:', !!storedUser);
 
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
       // Set default authorization header
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-      console.log('[AuthContext] Set Authorization header from stored token');
     }
 
     setLoading(false);
@@ -80,68 +75,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, password: string): Promise<void> => {
     try {
-      console.log('[AuthContext] Login attempt for:', email);
       setError(null);
       setLoading(true);
 
-      console.log('[AuthContext] Calling API POST /auth/login...');
       const response = await apiClient.post('/auth/login', {
         email,
         password,
       });
 
-      console.log('[AuthContext] Login response received:', response.status);
-      console.log('[AuthContext] Full response data:', response.data);
-      console.log('[AuthContext] Response data keys:', Object.keys(response.data));
-
       const { user: loggedInUser, accessToken: newToken } = response.data;
 
-      console.log('[AuthContext] Extracted token:', newToken ? `${newToken.substring(0, 20)}...` : 'NO TOKEN');
-      console.log('[AuthContext] Extracted user:', loggedInUser);
-
       if (!newToken) {
-        console.error('[AuthContext] ERROR: newToken is null/undefined!');
         throw new Error('No token in response');
       }
 
       if (!loggedInUser) {
-        console.error('[AuthContext] ERROR: loggedInUser is null/undefined!');
         throw new Error('No user in response');
       }
 
-      console.log('[AuthContext] Setting user state...');
       setUser(loggedInUser);
-      
-      console.log('[AuthContext] Setting token state...');
       setToken(newToken);
 
-      console.log('[AuthContext] Saving token to localStorage...');
       localStorage.setItem('auth_token', newToken);
-      console.log('[AuthContext] Successfully saved auth_token');
-
-      console.log('[AuthContext] Saving user to localStorage...');
       localStorage.setItem('auth_user', JSON.stringify(loggedInUser));
-      console.log('[AuthContext] Successfully saved auth_user');
 
-      console.log('[AuthContext] Verifying localStorage...');
-      const verify_token = localStorage.getItem('auth_token');
-      const verify_user = localStorage.getItem('auth_user');
-      console.log('[AuthContext] Verify token in storage:', !!verify_token);
-      console.log('[AuthContext] Verify user in storage:', !!verify_user);
-
-      console.log('[AuthContext] Setting Authorization header...');
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-      console.log('[AuthContext] Authorization header set');
-      
-      console.log('[AuthContext] Login complete - isAuthenticated should be: true');
     } catch (err) {
-      console.error('[AuthContext] LOGIN ERROR:', err);
-      console.error('[AuthContext] Error type:', err instanceof Error ? err.message : String(err));
-      if ((err as any).response) {
-        console.error('[AuthContext] API Response status:', (err as any).response.status);
-        console.error('[AuthContext] API Response data:', (err as any).response.data);
-      }
-      
       const message = err instanceof Error && (err as any).response?.data?.message
         ? (err as any).response.data.message
         : 'Login failed. Please check your credentials.';

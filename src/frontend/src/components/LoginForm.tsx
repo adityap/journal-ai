@@ -15,12 +15,9 @@ export const LoginForm: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      console.log('[LoginForm] Calling login()...');
       await login(email, password);
-      console.log('[LoginForm] Login successful, navigating to /');
       navigate('/');
     } catch (err) {
-      console.error('[LoginForm] Login failed with error:', err);
       setIsSubmitting(false);
     }
   };

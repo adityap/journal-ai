@@ -111,13 +111,10 @@ public class AuthService
         // IMPORTANT: Use the SAME key derivation logic as Program.cs for validation
         // If key < 32 bytes, hash it with SHA256. This ensures signing and validation use the same key.
         var keyBytes = System.Text.Encoding.UTF8.GetBytes(jwtSecret);
-        var finalKeyBytes = keyBytes.Length >= 32 
-            ? keyBytes 
+        var finalKeyBytes = keyBytes.Length >= 32
+            ? keyBytes
             : System.Security.Cryptography.SHA256.HashData(keyBytes);
-        
-        _logger.LogInformation($"[JWT] Signing key length: {keyBytes.Length} bytes, final key length: {finalKeyBytes.Length} bytes");
-        _logger.LogInformation($"[JWT] Using key derivation: {(keyBytes.Length >= 32 ? "DIRECT" : "SHA256 HASHED")}");
-        
+
         var securityKey = new SymmetricSecurityKey(finalKeyBytes);
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 

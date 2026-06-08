@@ -36,17 +36,6 @@ public class EntriesController : ControllerBase
     [ProducesResponseType(401)]
     public async Task<IActionResult> CreateEntry([FromBody] CreateEntryDto createDto)
     {
-        // Log entire incoming DTO for debugging
-        _logger.LogInformation("CreateEntry - Full DTO: Title={Title}, BodyText={BodyText}, Confidentiality={Conf}, HasSentimentScore={HasScore}", 
-            createDto.Title?.Substring(0, Math.Min(30, createDto.Title?.Length ?? 0)) ?? "null", 
-            createDto.BodyText?.Substring(0, Math.Min(30, createDto.BodyText?.Length ?? 0)) ?? "null",
-            createDto.Confidentiality,
-            createDto.SentimentScore.HasValue);
-        
-        // Log incoming sentiment data
-        _logger.LogInformation("CreateEntry - Received sentiment data: Score={SentimentScore}, Label={SentimentLabel}, Model={SentimentModel}",
-            createDto.SentimentScore, createDto.SentimentLabel, createDto.SentimentModel);
-
         // Validate DTO
         var validationErrors = _entryService.ValidateCreateEntry(createDto);
         if (validationErrors.Any())
@@ -84,10 +73,6 @@ public class EntriesController : ControllerBase
             Immutable = false
         };
 
-        // Log entry data before save
-        _logger.LogInformation("CreateEntry - Entry before save: Score={SentimentScore}, Label={SentimentLabel}", 
-            entry.SentimentScore, entry.SentimentLabel);
-
         // Calculate read_only_after based on user's timezone
         entry.ReadOnlyAfter = _entryService.CalculateReadOnlyAfter(user.Timezone, entry.CreatedAt);
 
@@ -106,9 +91,6 @@ public class EntriesController : ControllerBase
         await _context.SaveChangesAsync();
 
         var responseDto = MapToDto(entry);
-        _logger.LogInformation("CreateEntry - Response DTO: Score={SentimentScore}, Label={SentimentLabel}", 
-            responseDto.SentimentScore, responseDto.SentimentLabel);
-        
         _logger.LogInformation("Entry created: {EntryId} by user {UserId}", entry.Id, user.Id);
 
         return CreatedAtAction(nameof(GetEntry), new { id = entry.Id }, responseDto);
@@ -161,13 +143,6 @@ public class EntriesController : ControllerBase
             .ToListAsync();
 
         var items = entries.Select(MapToDto).ToList();
-        
-        // Log sentiment data for debugging
-        foreach (var item in items)
-        {
-            _logger.LogInformation("ListEntries - Entry {EntryId}: Title={Title}, Score={SentimentScore}, Label={SentimentLabel}",
-                item.Id, item.Title ?? "[No title]", item.SentimentScore, item.SentimentLabel ?? "[No label]");
-        }
 
         var result = new PagedResult<EntryResponseDto>
         {
