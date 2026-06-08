@@ -51,6 +51,10 @@ src/backend/*.db
 *.db
 *.sqlite
 *.sqlite3
+# SQLite WAL/journal sidecar files (not matched by *.db)
+*.db-shm
+*.db-wal
+*.db-journal
 
 # Package managers
 *.lock
