@@ -11,16 +11,18 @@ import {
 } from '../services/entriesClient';
 import { MindmapView } from './MindmapView';
 import { SentimentChart } from './SentimentChart';
+import { RelatedGraph } from './RelatedGraph';
 import { downloadExport, ExportFormat } from '../services/exportClient';
 import { asApiError, getErrorMessage } from '../utils/errors';
 import '../styles/entry.css';
 
-type ViewMode = 'list' | 'mindmap' | 'sentiment';
+type ViewMode = 'list' | 'mindmap' | 'sentiment' | 'related';
 
 const VIEW_MODES: { mode: ViewMode; label: string; title: string }[] = [
   { mode: 'list', label: '📋 List', title: 'List View' },
   { mode: 'mindmap', label: '🧠 Mindmap', title: 'Mindmap View' },
   { mode: 'sentiment', label: '📈 Sentiment', title: 'Sentiment Trends' },
+  { mode: 'related', label: '🔗 Related', title: 'Related entries (text similarity)' },
 ];
 
 const ViewModeSelector: React.FC<{
@@ -261,6 +263,43 @@ export const Timeline: React.FC = () => {
           </button>
         </div>
         <SentimentChart />
+      </div>
+    );
+  }
+
+  if (viewMode === 'related') {
+    return (
+      <div className="timeline-container">
+        <div className="timeline-header">
+          <div className="timeline-header-left">
+            <h1>My Journal Entries</h1>
+          </div>
+          <div className="timeline-header-right">
+            {user && (
+              <div className="user-info">
+                <span className="user-email">👤 {user.email}</span>
+                <button
+                  className="logout-btn"
+                  onClick={handleLogout}
+                  title="Logout"
+                >
+                  🚪 Logout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="timeline-actions">
+          <ViewModeSelector viewMode={viewMode} onChange={setViewMode} />
+          <button
+            className="create-entry-btn"
+            onClick={() => navigate('/entries/new')}
+          >
+            + New Entry
+          </button>
+        </div>
+        <RelatedGraph />
       </div>
     );
   }

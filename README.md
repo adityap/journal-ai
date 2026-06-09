@@ -21,7 +21,7 @@ sentiment analysis, and entry visualizations.
 - Search entries by title/body text (case-insensitive substring), combinable with date/category/tag filters
 - Export all your entries as JSON or Markdown (synchronous download)
 - Client-side sentiment analysis (keyword-based; no entry text is sent to a third party for analysis)
-- Sentiment trend chart and a category/tag mind-map view (SVG-based)
+- Sentiment trend chart, a category/tag mind-map, and a TF-IDF text-similarity "Related" graph (all SVG-based)
 - JWT authentication (register / login / logout), bcrypt password hashing (≥12 rounds)
 - `no_training_use` flag defaulted on every entry
 - Audit-log row written on entry creation
@@ -34,6 +34,7 @@ These are designed in the spec (and some have database tables reserved) but have
 
 - Ranked/stemmed full-text search (current search is a case-insensitive substring match over title/body)
 - ZIP export with media, bulk import, and async/background export jobs — `export_jobs` table is reserved for these (JSON/Markdown export ships synchronously today)
+- Force-directed graph layout (the TF-IDF "Related" graph currently uses a deterministic circular layout, no graph library)
 - Account-based unlock sessions for private entries (1-hour TTL) — `unlock_sessions` table exists, no endpoint
 - GDPR data export & account deletion
 - TF-IDF / similarity-based mind-map graph (current mind-map is simple category/tag grouping)
@@ -134,6 +135,7 @@ Swagger UI (development only): http://localhost:5000/swagger
 | POST | `/api/v1/auth/validate` | Validate a token |
 | POST | `/api/v1/entries` | Create entry |
 | GET | `/api/v1/entries` | List entries (paginated; filter by date/category/tag; `q` text search) |
+| GET | `/api/v1/entries/graph` | TF-IDF similarity graph (nodes + weighted edges) |
 | GET | `/api/v1/entries/{id}` | Read entry |
 | PATCH | `/api/v1/entries/{id}` | Edit entry (same day only) |
 | DELETE | `/api/v1/entries/{id}` | Delete entry (same day only) |

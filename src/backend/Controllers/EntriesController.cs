@@ -17,12 +17,14 @@ public class EntriesController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly EntryService _entryService;
+    private readonly TfIdfService _tfIdf;
     private readonly ILogger<EntriesController> _logger;
 
-    public EntriesController(AppDbContext context, EntryService entryService, ILogger<EntriesController> logger)
+    public EntriesController(AppDbContext context, EntryService entryService, TfIdfService tfIdf, ILogger<EntriesController> logger)
     {
         _context = context;
         _entryService = entryService;
+        _tfIdf = tfIdf;
         _logger = logger;
     }
 
@@ -166,6 +168,32 @@ public class EntriesController : ControllerBase
         };
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Build a TF-IDF similarity graph of the user's entries (for the relationship
+    /// mind-map). Nodes are entries; edges connect entries whose title+body text
+    /// are similar above the given cosine-similarity threshold.
+    /// GET /api/v1/entries/graph?threshold=0.1
+    /// </summary>
+    [HttpGet("graph")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> GetSimilarityGraph([FromQuery] double threshold = 0.1)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+            return Unauthorized();
+
+        var clamped = Math.Clamp(threshold, 0.0, 1.0);
+
+        var entries = await _context.Entries
+            .Where(e => e.UserId == userGuid)
+            .OrderByDescending(e => e.CreatedAt)
+            .ToListAsync();
+
+        var graph = _tfIdf.BuildSimilarityGraph(entries, clamped);
+        return Ok(graph);
     }
 
     /// <summary>

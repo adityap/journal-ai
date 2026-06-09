@@ -523,3 +523,23 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Related-entries similarity graph */
+.related-graph {
+  padding: 1rem;
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.related-graph-hint {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0 0 1rem;
+}
+
+.related-graph-svg {
+  width: 100%;
+  height: auto;
+  max-width: 600px;
+}
