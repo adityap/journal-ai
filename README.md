@@ -15,7 +15,7 @@ sentiment analysis, and entry visualizations.
 ### ✅ Implemented
 
 - Create journal entries with text and attached media (images/video via S3/MinIO)
-- Organize entries with tags; optional category reference per entry
+- Organize entries with tags and user-defined categories (per-user CRUD, unique names)
 - Public / Private confidentiality levels
 - Same-day edit/delete enforcement (entries become immutable after their creation day, in the user's timezone)
 - Client-side sentiment analysis (keyword-based; no entry text is sent to a third party for analysis)
@@ -34,7 +34,6 @@ These are designed in the spec (and some have database tables reserved) but have
 - Export (JSON / Markdown / ZIP) and bulk import — `export_jobs` table exists, no job/endpoint
 - Account-based unlock sessions for private entries (1-hour TTL) — `unlock_sessions` table exists, no endpoint
 - GDPR data export & account deletion
-- Category management API (categories can't yet be created via the API; the mind-map groups by raw category id)
 - TF-IDF / similarity-based mind-map graph (current mind-map is simple category/tag grouping)
 - Rate limiting, encryption at rest, and an observability stack (OpenTelemetry / Prometheus / Grafana / Serilog)
 
@@ -136,6 +135,11 @@ Swagger UI (development only): http://localhost:5000/swagger
 | GET | `/api/v1/entries/{id}` | Read entry |
 | PATCH | `/api/v1/entries/{id}` | Edit entry (same day only) |
 | DELETE | `/api/v1/entries/{id}` | Delete entry (same day only) |
+| GET | `/api/v1/categories` | List categories (with entry counts) |
+| POST | `/api/v1/categories` | Create category (unique name per user) |
+| GET | `/api/v1/categories/{id}` | Read category |
+| PATCH | `/api/v1/categories/{id}` | Update category |
+| DELETE | `/api/v1/categories/{id}` | Delete category (clears entry references) |
 | POST | `/api/v1/media/initiate` | Get presigned upload URL |
 | POST | `/api/v1/media/complete` | Finalize upload |
 | GET | `/api/v1/media` | List media (paginated) |
@@ -157,7 +161,7 @@ Core tables (created via EF Core; `EnsureCreated` in dev):
 
 - **users** — authentication & settings
 - **entries** — journal entries with sentiment fields, confidentiality, immutability
-- **categories** — entry categories (optional reference per entry; no management API yet)
+- **categories** — user-defined entry categories (per-user CRUD; optional reference per entry)
 - **media** — images/videos with S3 references and thumbnails
 - **audit_logs** — mutation log (currently written on entry creation)
 - **export_jobs** — reserved for the planned async export feature (unused)
