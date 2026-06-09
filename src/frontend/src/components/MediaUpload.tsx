@@ -5,6 +5,7 @@ import {
   uploadFileToS3,
   MediaFile,
 } from '../services/mediaClient';
+import { getErrorMessage } from '../utils/errors';
 
 /**
  * Media Upload Component
@@ -91,8 +92,8 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
       setIsUploading(false);
 
       onSuccess?.(mediaFile);
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Upload failed';
+    } catch (err) {
+      const errorMessage = getErrorMessage(err, 'Upload failed');
       setError(errorMessage);
       onError?.(errorMessage);
       setIsUploading(false);

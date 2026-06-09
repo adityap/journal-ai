@@ -13,6 +13,7 @@ import { MediaUpload } from './MediaUpload';
 import { MediaLibrary } from './MediaLibrary';
 import { associateMediaWithEntry, MediaFile } from '../services/mediaClient';
 import { listCategories, createCategory, Category } from '../services/categoriesClient';
+import { asApiError, getErrorMessage } from '../utils/errors';
 
 /**
  * Entry Form Component
@@ -58,8 +59,8 @@ export const EntryForm: React.FC = () => {
       setCategories((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
       setCategoryId(created.id);
       setNewCategoryName('');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create category');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to create category'));
     } finally {
       setCategoryBusy(false);
     }
@@ -81,9 +82,8 @@ export const EntryForm: React.FC = () => {
             setSentimentScore(entry.sentimentScore);
           }
           setIsImmutable(isEntryImmutable(entry));
-        } catch (err: any) {
-          const message = err.response?.data?.message || 'Failed to load entry';
-          setError(message);
+        } catch (err) {
+          setError(getErrorMessage(err, 'Failed to load entry'));
         } finally {
           setLoading(false);
         }
@@ -179,7 +179,7 @@ export const EntryForm: React.FC = () => {
         if (selectedMedia) {
           try {
             await associateMediaWithEntry(selectedMedia.id, newEntry.id);
-          } catch (mediaErr: any) {
+          } catch (mediaErr) {
             console.error('Failed to associate media with entry:', mediaErr);
             // Continue anyway - entry was created successfully
           }
@@ -202,13 +202,14 @@ export const EntryForm: React.FC = () => {
       setTimeout(() => {
         navigate('/');
       }, 1500);
-    } catch (err: any) {
-      const message = err.response?.data?.message || err.message || 'Failed to save entry';
-      
+    } catch (err) {
+      const apiErr = asApiError(err);
+      const message = getErrorMessage(err, 'Failed to save entry');
+
       // Handle validation errors from API
-      if (err.response?.data?.errors) {
+      if (apiErr.response?.data?.errors) {
         const apiErrors: string[] = [];
-        Object.values(err.response.data.errors).forEach((fieldErrors: any) => {
+        Object.values(apiErr.response.data.errors).forEach((fieldErrors) => {
           if (Array.isArray(fieldErrors)) {
             apiErrors.push(...fieldErrors);
           }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { listMediaFiles, deleteMediaFile, MediaFile } from '../services/mediaClient';
+import { getErrorMessage } from '../utils/errors';
 
 /**
  * Media Library Component
@@ -28,6 +29,8 @@ export const MediaLibrary: React.FC<MediaLibraryProps> = ({
   // Fetch media files on page change
   useEffect(() => {
     fetchMediaFiles();
+    // Intentionally runs only on page change; fetchMediaFiles reads page/entryId.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   const fetchMediaFiles = async () => {
@@ -40,9 +43,8 @@ export const MediaLibrary: React.FC<MediaLibraryProps> = ({
       const items = result?.items || [];
       setMediaFiles(Array.isArray(items) ? items : []);
       setTotalPages(result?.totalPages || 0);
-    } catch (err: any) {
-      const message = err.response?.data?.message || 'Failed to load media';
-      setError(message);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to load media'));
       setMediaFiles([]);
     } finally {
       setLoading(false);
@@ -57,9 +59,8 @@ export const MediaLibrary: React.FC<MediaLibraryProps> = ({
     try {
       await deleteMediaFile(mediaId);
       setMediaFiles(mediaFiles.filter((m) => m.id !== mediaId));
-    } catch (err: any) {
-      const message = err.response?.data?.message || 'Failed to delete media';
-      setError(message);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to delete media'));
     }
   };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { entriesClient, Entry } from '../services/entriesClient';
 import { listCategories, buildCategoryNameMap } from '../services/categoriesClient';
+import { getErrorMessage } from '../utils/errors';
 import '../styles/entry.css';
 
 interface MediaFile {
@@ -27,6 +28,8 @@ export const EntryDetail: React.FC = () => {
     listCategories()
       .then((cats) => setCategoryNames(buildCategoryNameMap(cats)))
       .catch(() => setCategoryNames({}));
+    // Intentionally runs only when the entry id changes; loadEntry reads `id`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadEntry = async () => {
@@ -58,9 +61,8 @@ export const EntryDetail: React.FC = () => {
         // Media loading is optional
         console.error('Failed to load media:', err);
       }
-    } catch (err: any) {
-      const message = err.response?.data?.message || err.message || 'Failed to load entry';
-      setError(message);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to load entry'));
     } finally {
       setLoading(false);
     }
@@ -74,9 +76,8 @@ export const EntryDetail: React.FC = () => {
     try {
       await entriesClient.deleteEntry(entry.id);
       navigate('/');
-    } catch (err: any) {
-      const message = err.response?.data?.message || err.message || 'Failed to delete entry';
-      setError(message);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to delete entry'));
     }
   };
 

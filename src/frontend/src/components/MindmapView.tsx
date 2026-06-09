@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { entriesClient, Entry } from '../services/entriesClient';
 import { listCategories, buildCategoryNameMap } from '../services/categoriesClient';
+import { getErrorMessage } from '../utils/errors';
 import '../styles/visualization.css';
 
 interface MindmapNode {
@@ -30,6 +31,8 @@ export const MindmapView: React.FC = () => {
     if (entries.length > 0) {
       generateMindmapData();
     }
+    // Regenerates when entries or category names change; generateMindmapData reads both.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, categoryNames]);
 
   const loadEntries = async () => {
@@ -38,9 +41,8 @@ export const MindmapView: React.FC = () => {
       setError(null);
       const result = await entriesClient.listEntries(1, 100);
       setEntries(result.items);
-    } catch (err: any) {
-      const message = err.response?.data?.message || err.message || 'Failed to load entries';
-      setError(message);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to load entries'));
     } finally {
       setLoading(false);
     }

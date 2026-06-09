@@ -12,6 +12,7 @@ import {
 import { MindmapView } from './MindmapView';
 import { SentimentChart } from './SentimentChart';
 import { downloadExport, ExportFormat } from '../services/exportClient';
+import { asApiError, getErrorMessage } from '../utils/errors';
 import '../styles/entry.css';
 
 type ViewMode = 'list' | 'mindmap' | 'sentiment';
@@ -64,8 +65,8 @@ export const Timeline: React.FC = () => {
     setError(null);
     try {
       await downloadExport(format);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Export failed');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Export failed'));
     } finally {
       setExporting(null);
     }
@@ -93,18 +94,17 @@ export const Timeline: React.FC = () => {
 
         setEntries(result.items);
         setTotalPages(result.totalPages);
-      } catch (err: any) {
+      } catch (err) {
         // Check if it's a 401 - likely means token is stale
-        if (err.response?.status === 401) {
+        if (asApiError(err).response?.status === 401) {
           console.error('[Timeline] Got 401 - token is likely stale. Clearing storage and redirecting to login...');
           localStorage.removeItem('auth_token');
           localStorage.removeItem('auth_user');
           navigate('/login', { replace: true });
           return;
         }
-        
-        const message = err.response?.data?.message || err.message || 'Failed to load entries';
-        setError(message);
+
+        setError(getErrorMessage(err, 'Failed to load entries'));
         setEntries([]);
       } finally {
         setLoading(false);
@@ -129,21 +129,20 @@ export const Timeline: React.FC = () => {
       // Remove from list immediately on success
       setEntries(entries.filter((e) => e.id !== entryId));
       setError(null); // Clear any previous errors
-    } catch (err: any) {
+    } catch (err) {
       console.error('[Timeline] Delete failed:', err);
-      
+
       // Provide specific error messages based on status code
+      const apiErr = asApiError(err);
       let message = 'Failed to delete entry';
-      if (err.response?.status === 403) {
+      if (apiErr.response?.status === 403) {
         message = '⏱️ This entry is read-only and cannot be deleted. Entries become immutable at the end of the day they were created.';
-      } else if (err.response?.status === 404) {
+      } else if (apiErr.response?.status === 404) {
         message = 'Entry not found. It may have already been deleted.';
-      } else if (err.response?.data?.message) {
-        message = err.response.data.message;
-      } else if (err.message) {
-        message = err.message;
+      } else {
+        message = getErrorMessage(err, message);
       }
-      
+
       setError(message);
       console.error('[Timeline] Error message:', message);
     } finally {

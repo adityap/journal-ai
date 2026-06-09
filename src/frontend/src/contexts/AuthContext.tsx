@@ -1,6 +1,7 @@
 // @refresh reset
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiClient } from '../services/apiClient';
+import { getErrorMessage } from '../utils/errors';
 
 interface User {
   id: string;
@@ -63,10 +64,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Set default authorization header
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     } catch (err) {
-      const message = err instanceof Error && (err as any).response?.data?.message
-        ? (err as any).response.data.message
-        : 'Registration failed. Please try again.';
-      setError(message);
+      setError(getErrorMessage(err, 'Registration failed. Please try again.'));
       throw err;
     } finally {
       setLoading(false);
@@ -101,10 +99,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     } catch (err) {
-      const message = err instanceof Error && (err as any).response?.data?.message
-        ? (err as any).response.data.message
-        : 'Login failed. Please check your credentials.';
-      setError(message);
+      setError(getErrorMessage(err, 'Login failed. Please check your credentials.'));
       throw err;
     } finally {
       setLoading(false);
@@ -138,6 +133,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
+// Colocated with the provider by design; the hook + provider belong together.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {

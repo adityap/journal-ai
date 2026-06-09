@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { entriesClient, Entry } from '../services/entriesClient';
+import { getErrorMessage } from '../utils/errors';
 import '../styles/visualization.css';
 
 interface SentimentDataPoint {
@@ -24,6 +25,8 @@ export const SentimentChart: React.FC = () => {
     if (entries.length > 0) {
       generateChartData();
     }
+    // Regenerates when entries or the date range change; generateChartData reads both.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, dateRange]);
 
   const loadEntries = async () => {
@@ -32,9 +35,8 @@ export const SentimentChart: React.FC = () => {
       setError(null);
       const result = await entriesClient.listEntries(1, 200);
       setEntries(result.items);
-    } catch (err: any) {
-      const message = err.response?.data?.message || err.message || 'Failed to load entries';
-      setError(message);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to load entries'));
     } finally {
       setLoading(false);
     }
