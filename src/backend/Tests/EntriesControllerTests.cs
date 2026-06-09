@@ -704,6 +704,42 @@ public class EntriesControllerTests : IAsyncLifetime
         Assert.Equal("Tagged Entry", pagedResult.Items[0].Title);
     }
 
+    /// <summary>
+    /// Test: ?q= performs a case-insensitive substring search over title and body.
+    /// </summary>
+    [Fact]
+    public async Task ListEntries_SearchByQuery_MatchesTitleAndBodyCaseInsensitively()
+    {
+        _dbContext.Entries.AddRange(
+            new Entry
+            {
+                Id = Guid.NewGuid(), UserId = _testUserId, Title = "Kyoto trip",
+                BodyText = "temples and gardens", Type = "text", Confidentiality = "public",
+                CreatedAt = DateTime.UtcNow, ReadOnlyAfter = DateTime.UtcNow.AddDays(1)
+            },
+            new Entry
+            {
+                Id = Guid.NewGuid(), UserId = _testUserId, Title = "Grocery list",
+                BodyText = "Visited the KYOTO market", Type = "text", Confidentiality = "public",
+                CreatedAt = DateTime.UtcNow, ReadOnlyAfter = DateTime.UtcNow.AddDays(1)
+            },
+            new Entry
+            {
+                Id = Guid.NewGuid(), UserId = _testUserId, Title = "Unrelated",
+                BodyText = "nothing here", Type = "text", Confidentiality = "public",
+                CreatedAt = DateTime.UtcNow, ReadOnlyAfter = DateTime.UtcNow.AddDays(1)
+            });
+        await _dbContext.SaveChangesAsync();
+
+        // Lower-case query should match both the title hit and the body hit (case-insensitive).
+        var result = await _controller.ListEntries(null, null, null, null, 1, 20, "kyoto");
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var pagedResult = Assert.IsType<PagedResult<EntryResponseDto>>(okResult.Value);
+        Assert.Equal(2, pagedResult.Items.Count);
+        Assert.DoesNotContain(pagedResult.Items, e => e.Title == "Unrelated");
+    }
+
     #endregion
 
     #region Error Handling Tests

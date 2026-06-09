@@ -58,6 +58,7 @@ export const listEntries = async (
     end?: Date;
     categoryId?: string;
     tag?: string;
+    q?: string;
   }
 ): Promise<PagedResult<Entry>> => {
   const params = new URLSearchParams({
@@ -69,6 +70,7 @@ export const listEntries = async (
   if (filters?.end) params.append('end', filters.end.toISOString());
   if (filters?.categoryId) params.append('categoryId', filters.categoryId);
   if (filters?.tag) params.append('tag', filters.tag);
+  if (filters?.q && filters.q.trim()) params.append('q', filters.q.trim());
 
   const response = await apiClient.get<PagedResult<Entry>>(`/entries?${params}`);
   return response.data;

@@ -18,6 +18,7 @@ sentiment analysis, and entry visualizations.
 - Organize entries with tags and user-defined categories (per-user CRUD, unique names)
 - Public / Private confidentiality levels
 - Same-day edit/delete enforcement (entries become immutable after their creation day, in the user's timezone)
+- Search entries by title/body text (case-insensitive substring), combinable with date/category/tag filters
 - Client-side sentiment analysis (keyword-based; no entry text is sent to a third party for analysis)
 - Sentiment trend chart and a category/tag mind-map view (SVG-based)
 - JWT authentication (register / login / logout), bcrypt password hashing (≥12 rounds)
@@ -30,7 +31,7 @@ sentiment analysis, and entry visualizations.
 These are designed in the spec (and some have database tables reserved) but have
 **no working endpoint yet**:
 
-- Full-text search across entries
+- Ranked/stemmed full-text search (current search is a case-insensitive substring match over title/body)
 - Export (JSON / Markdown / ZIP) and bulk import — `export_jobs` table exists, no job/endpoint
 - Account-based unlock sessions for private entries (1-hour TTL) — `unlock_sessions` table exists, no endpoint
 - GDPR data export & account deletion
@@ -131,7 +132,7 @@ Swagger UI (development only): http://localhost:5000/swagger
 | GET | `/api/v1/auth/me` | Current user |
 | POST | `/api/v1/auth/validate` | Validate a token |
 | POST | `/api/v1/entries` | Create entry |
-| GET | `/api/v1/entries` | List entries (paginated, filter by date/category/tag) |
+| GET | `/api/v1/entries` | List entries (paginated; filter by date/category/tag; `q` text search) |
 | GET | `/api/v1/entries/{id}` | Read entry |
 | PATCH | `/api/v1/entries/{id}` | Edit entry (same day only) |
 | DELETE | `/api/v1/entries/{id}` | Delete entry (same day only) |

@@ -54,15 +54,28 @@ export const Timeline: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // Load entries on page change
+  // Debounce the search box so we don't fetch on every keystroke
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(handle);
+  }, [search]);
+
+  // A new search resets to the first page
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
+  // Load entries on page or search change
   useEffect(() => {
     const fetchEntries = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const result: PagedResult<Entry> = await listEntries(page, 20);
+        const result: PagedResult<Entry> = await listEntries(page, 20, { q: debouncedSearch });
 
         setEntries(result.items);
         setTotalPages(result.totalPages);
@@ -85,7 +98,7 @@ export const Timeline: React.FC = () => {
     };
 
     fetchEntries();
-  }, [page, navigate]);
+  }, [page, debouncedSearch, navigate]);
 
   const handleEdit = (entryId: string) => {
     navigate(`/entries/${entryId}/edit`);
@@ -272,6 +285,23 @@ export const Timeline: React.FC = () => {
         </button>
       </div>
 
+      <input
+        type="search"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="🔍 Search entries by title or text…"
+        aria-label="Search entries"
+        style={{
+          width: '100%',
+          padding: '0.6rem 0.75rem',
+          margin: '0.5rem 0 1rem',
+          border: '1px solid #ddd',
+          borderRadius: '6px',
+          fontSize: '1rem',
+          boxSizing: 'border-box',
+        }}
+      />
+
       {error && (
         <div className="timeline-status error" role="alert">
           {error}
@@ -279,17 +309,25 @@ export const Timeline: React.FC = () => {
       )}
 
       {entries.length === 0 && !loading ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">📝</div>
-          <h2 className="empty-state-title">No entries yet</h2>
-          <p className="empty-state-text">Start writing to create your first journal entry</p>
-          <button
-            className="create-entry-btn"
-            onClick={() => navigate('/entries/new')}
-          >
-            Create Your First Entry
-          </button>
-        </div>
+        debouncedSearch ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">🔍</div>
+            <h2 className="empty-state-title">No matches</h2>
+            <p className="empty-state-text">No entries match “{debouncedSearch}”.</p>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <div className="empty-state-icon">📝</div>
+            <h2 className="empty-state-title">No entries yet</h2>
+            <p className="empty-state-text">Start writing to create your first journal entry</p>
+            <button
+              className="create-entry-btn"
+              onClick={() => navigate('/entries/new')}
+            >
+              Create Your First Entry
+            </button>
+          </div>
+        )
       ) : (
         <>
           <div className="entries-list">

@@ -109,7 +109,8 @@ public class EntriesController : ControllerBase
         [FromQuery] Guid? categoryId,
         [FromQuery] string? tag,
         [FromQuery] int page = 1,
-        [FromQuery] int perPage = 20)
+        [FromQuery] int perPage = 20,
+        [FromQuery] string? q = null)
     {
         // Use the mapped claim type (ClaimTypes.NameIdentifier) instead of "sub"
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -134,6 +135,17 @@ public class EntriesController : ControllerBase
         // Filter by tag (simple string match)
         if (!string.IsNullOrEmpty(tag))
             query = query.Where(e => e.Tags != null && e.Tags.Contains(tag));
+
+        // Text search over title and body (case-insensitive substring match).
+        // ToLower() translates on both SQLite and PostgreSQL for provider-agnostic
+        // case-insensitivity.
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim().ToLower();
+            query = query.Where(e =>
+                (e.Title != null && e.Title.ToLower().Contains(term)) ||
+                (e.BodyText != null && e.BodyText.ToLower().Contains(term)));
+        }
 
         var totalCount = await query.CountAsync();
         var entries = await query
