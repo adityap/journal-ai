@@ -55,6 +55,8 @@ src/backend/*.db
 *.db-shm
 *.db-wal
 *.db-journal
+# local DB backups
+*.db.bak*
 
 # Package managers
 *.lock

@@ -12,6 +12,7 @@ import { analyzeSentiment, getSentimentLabel } from '../utils/sentimentAnalyzer'
 import { MediaUpload } from './MediaUpload';
 import { MediaLibrary } from './MediaLibrary';
 import { associateMediaWithEntry, MediaFile } from '../services/mediaClient';
+import { listCategories, createCategory, Category } from '../services/categoriesClient';
 
 /**
  * Entry Form Component
@@ -35,6 +36,34 @@ export const EntryForm: React.FC = () => {
   const [showMediaUpload, setShowMediaUpload] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaFile | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryId, setCategoryId] = useState<string>('');
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryBusy, setCategoryBusy] = useState(false);
+
+  // Load the user's categories for the selector
+  useEffect(() => {
+    listCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]));
+  }, []);
+
+  // Create a category inline and select it
+  const handleCreateCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    setCategoryBusy(true);
+    try {
+      const created = await createCategory({ name });
+      setCategories((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setCategoryId(created.id);
+      setNewCategoryName('');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to create category');
+    } finally {
+      setCategoryBusy(false);
+    }
+  };
 
   // Load entry data if editing
   useEffect(() => {
@@ -47,6 +76,7 @@ export const EntryForm: React.FC = () => {
           setBodyText(entry.bodyText || '');
           setTags(entry.tags?.join(', ') || '');
           setConfidentiality(entry.confidentiality || 'public');
+          setCategoryId(entry.categoryId || '');
           if (entry.sentimentScore) {
             setSentimentScore(entry.sentimentScore);
           }
@@ -125,6 +155,7 @@ export const EntryForm: React.FC = () => {
           .map((t) => t.trim())
           .filter((t) => t.length > 0),
         confidentiality,
+        categoryId: categoryId || undefined,
         sentimentScore: finalSentimentScore,
         sentimentLabel: getSentimentLabel(finalSentimentScore),
         sentimentModel: 'simple-keyword-analysis',
@@ -136,6 +167,7 @@ export const EntryForm: React.FC = () => {
           title: (payload.title as string) || undefined,
           bodyText: (payload.bodyText as string) || undefined,
           tags: payload.tags,
+          categoryId: categoryId || undefined,
         };
         await updateEntry(entryId, updatePayload);
       } else {
@@ -281,6 +313,47 @@ export const EntryForm: React.FC = () => {
             </select>
           </div>
 
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="category">Category</label>
+            <select
+              id="category"
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              disabled={loading}
+            >
+              <option value="">— None —</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="newCategory">New category</label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                id="newCategory"
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="e.g., Travel"
+                disabled={loading || categoryBusy}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleCreateCategory}
+                disabled={loading || categoryBusy || !newCategoryName.trim()}
+              >
+                {categoryBusy ? 'Adding…' : '+ Add'}
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="form-row">

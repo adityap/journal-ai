@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { entriesClient, Entry } from '../services/entriesClient';
+import { listCategories, buildCategoryNameMap } from '../services/categoriesClient';
 import '../styles/entry.css';
 
 interface MediaFile {
@@ -19,9 +20,13 @@ export const EntryDetail: React.FC = () => {
   const [media, setMedia] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [categoryNames, setCategoryNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadEntry();
+    listCategories()
+      .then((cats) => setCategoryNames(buildCategoryNameMap(cats)))
+      .catch(() => setCategoryNames({}));
   }, [id]);
 
   const loadEntry = async () => {
@@ -173,7 +178,7 @@ export const EntryDetail: React.FC = () => {
           </span>
           {entry.categoryId && (
             <span className="metadata-item">
-              📁 {entry.categoryId}
+              📁 {categoryNames[entry.categoryId] || 'Uncategorized'}
             </span>
           )}
           <span

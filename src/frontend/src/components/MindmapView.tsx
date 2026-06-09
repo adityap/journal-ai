@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { entriesClient, Entry } from '../services/entriesClient';
+import { listCategories, buildCategoryNameMap } from '../services/categoriesClient';
 import '../styles/visualization.css';
 
 interface MindmapNode {
@@ -16,16 +17,20 @@ export const MindmapView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [mindmapData, setMindmapData] = useState<MindmapNode | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['root']));
+  const [categoryNames, setCategoryNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadEntries();
+    listCategories()
+      .then((cats) => setCategoryNames(buildCategoryNameMap(cats)))
+      .catch(() => setCategoryNames({}));
   }, []);
 
   useEffect(() => {
     if (entries.length > 0) {
       generateMindmapData();
     }
-  }, [entries]);
+  }, [entries, categoryNames]);
 
   const loadEntries = async () => {
     try {
@@ -47,7 +52,8 @@ export const MindmapView: React.FC = () => {
     const tagGroups: Record<string, Entry[]> = {};
 
     entries.forEach((entry) => {
-      const category = entry.categoryId || 'Uncategorized';
+      const category =
+        (entry.categoryId && categoryNames[entry.categoryId]) || 'Uncategorized';
       if (!categoryGroups[category]) {
         categoryGroups[category] = [];
       }
