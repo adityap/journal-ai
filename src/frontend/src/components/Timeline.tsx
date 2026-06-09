@@ -11,6 +11,7 @@ import {
 } from '../services/entriesClient';
 import { MindmapView } from './MindmapView';
 import { SentimentChart } from './SentimentChart';
+import { downloadExport, ExportFormat } from '../services/exportClient';
 import '../styles/entry.css';
 
 type ViewMode = 'list' | 'mindmap' | 'sentiment';
@@ -56,6 +57,19 @@ export const Timeline: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [exporting, setExporting] = useState<ExportFormat | null>(null);
+
+  const handleExport = async (format: ExportFormat) => {
+    setExporting(format);
+    setError(null);
+    try {
+      await downloadExport(format);
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Export failed');
+    } finally {
+      setExporting(null);
+    }
+  };
 
   // Debounce the search box so we don't fetch on every keystroke
   useEffect(() => {
@@ -277,12 +291,30 @@ export const Timeline: React.FC = () => {
 
       <div className="timeline-actions">
         <ViewModeSelector viewMode={viewMode} onChange={setViewMode} />
-        <button
-          className="create-entry-btn"
-          onClick={() => navigate('/entries/new')}
-        >
-          + New Entry
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => handleExport('json')}
+            disabled={exporting !== null}
+            title="Export all entries as JSON"
+          >
+            {exporting === 'json' ? 'Exporting…' : '⬇ JSON'}
+          </button>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => handleExport('markdown')}
+            disabled={exporting !== null}
+            title="Export all entries as Markdown"
+          >
+            {exporting === 'markdown' ? 'Exporting…' : '⬇ Markdown'}
+          </button>
+          <button
+            className="create-entry-btn"
+            onClick={() => navigate('/entries/new')}
+          >
+            + New Entry
+          </button>
+        </div>
       </div>
 
       <input

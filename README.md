@@ -19,6 +19,7 @@ sentiment analysis, and entry visualizations.
 - Public / Private confidentiality levels
 - Same-day edit/delete enforcement (entries become immutable after their creation day, in the user's timezone)
 - Search entries by title/body text (case-insensitive substring), combinable with date/category/tag filters
+- Export all your entries as JSON or Markdown (synchronous download)
 - Client-side sentiment analysis (keyword-based; no entry text is sent to a third party for analysis)
 - Sentiment trend chart and a category/tag mind-map view (SVG-based)
 - JWT authentication (register / login / logout), bcrypt password hashing (≥12 rounds)
@@ -32,7 +33,7 @@ These are designed in the spec (and some have database tables reserved) but have
 **no working endpoint yet**:
 
 - Ranked/stemmed full-text search (current search is a case-insensitive substring match over title/body)
-- Export (JSON / Markdown / ZIP) and bulk import — `export_jobs` table exists, no job/endpoint
+- ZIP export with media, bulk import, and async/background export jobs — `export_jobs` table is reserved for these (JSON/Markdown export ships synchronously today)
 - Account-based unlock sessions for private entries (1-hour TTL) — `unlock_sessions` table exists, no endpoint
 - GDPR data export & account deletion
 - TF-IDF / similarity-based mind-map graph (current mind-map is simple category/tag grouping)
@@ -141,6 +142,7 @@ Swagger UI (development only): http://localhost:5000/swagger
 | GET | `/api/v1/categories/{id}` | Read category |
 | PATCH | `/api/v1/categories/{id}` | Update category |
 | DELETE | `/api/v1/categories/{id}` | Delete category (clears entry references) |
+| GET | `/api/v1/exports?format=json\|markdown` | Download all your entries as a file |
 | POST | `/api/v1/media/initiate` | Get presigned upload URL |
 | POST | `/api/v1/media/complete` | Finalize upload |
 | GET | `/api/v1/media` | List media (paginated) |
