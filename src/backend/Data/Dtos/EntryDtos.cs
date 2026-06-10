@@ -78,6 +78,13 @@ public class EntryResponseDto
     public DateTime ReadOnlyAfter { get; set; }
 
     public bool Immutable { get; set; }
+
+    /// <summary>
+    /// True when this is a private entry the caller has not unlocked. Locked entries are
+    /// returned with content fields (title, body, tags, sentiment) redacted to null; the
+    /// caller can call POST /api/v1/unlock to reveal them.
+    /// </summary>
+    public bool Locked { get; set; }
 }
 
 /// <summary>

@@ -11,7 +11,7 @@ issues. Older status docs live in [`archive/`](archive/) and are not maintained.
 | Area | Status | How to check |
 |------|--------|--------------|
 | Backend build | ✅ 0 errors | `dotnet build src/backend/JournalAI.csproj` |
-| Backend tests | ✅ 124 / 124 passing | `dotnet test src/backend/JournalAI.Tests.csproj` |
+| Backend tests | ✅ 136 / 136 passing | `dotnet test src/backend/JournalAI.Tests.csproj` |
 | Frontend type-check | ✅ 0 errors | `npx tsc --noEmit` (in `src/frontend`) |
 | Frontend build | ✅ passing | `npm run build` (in `src/frontend`) |
 
@@ -26,6 +26,13 @@ issues. Older status docs live in [`archive/`](archive/) and are not maintained.
 - **Media** — presigned S3/MinIO upload, metadata, async thumbnail generation
   (Hangfire), association with entries.
 - **Visualizations** — list, mindmap, and sentiment-trend views.
+- **Confidentiality / unlock** — private entries are gated at read time: list,
+  single-entry read, and the similarity graph return them locked (content
+  redacted) until the user unlocks. `POST /api/v1/unlock` verifies the account
+  password and issues an account-wide session (1-hour TTL, revoked on logout);
+  only a SHA-256 hash of the token is stored, and the client resends the raw
+  token via the `X-Unlock-Token` header. Export is intentionally exempt (it's the
+  owner's own full-data download). See FR-C2/FR-E9 in the spec.
 - **Export / import** — synchronous JSON/Markdown export of all your entries, and
   JSON import (`POST /api/v1/imports`). Import is defensive: ownership is forced
   to the caller (file-supplied ids ignored), foreign/unknown `categoryId`s are

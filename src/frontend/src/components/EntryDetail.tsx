@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { entriesClient, Entry } from '../services/entriesClient';
 import { listCategories, buildCategoryNameMap } from '../services/categoriesClient';
 import { getErrorMessage } from '../utils/errors';
+import { UnlockModal } from './UnlockModal';
 import '../styles/entry.css';
 
 interface MediaFile {
@@ -22,6 +23,7 @@ export const EntryDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categoryNames, setCategoryNames] = useState<Record<string, string>>({});
+  const [showUnlock, setShowUnlock] = useState(false);
 
   useEffect(() => {
     loadEntry();
@@ -157,7 +159,7 @@ export const EntryDetail: React.FC = () => {
           ← Back
         </button>
         <div className="entry-detail-actions">
-          {!isImmutable && (
+          {!isImmutable && !entry.locked && (
             <>
               <button onClick={handleEdit} className="btn btn-primary">
                 ✏️ Edit
@@ -171,7 +173,7 @@ export const EntryDetail: React.FC = () => {
       </div>
 
       <div className="entry-detail-content">
-        <h1>{entry.title}</h1>
+        <h1>{entry.locked ? '🔒 Private entry (locked)' : entry.title}</h1>
 
         <div className="entry-detail-metadata">
           <span className="metadata-item">
@@ -202,9 +204,18 @@ export const EntryDetail: React.FC = () => {
           </div>
         )}
 
-        <div className="entry-detail-body">
-          {entry.bodyText}
-        </div>
+        {entry.locked ? (
+          <div className="read-only-notice">
+            🔒 This private entry is locked.{' '}
+            <button onClick={() => setShowUnlock(true)} className="btn btn-primary btn-sm">
+              🔓 Unlock to view
+            </button>
+          </div>
+        ) : (
+          <div className="entry-detail-body">
+            {entry.bodyText}
+          </div>
+        )}
 
         {entry.tags && entry.tags.length > 0 && (
           <div className="entry-detail-tags">
@@ -240,6 +251,16 @@ export const EntryDetail: React.FC = () => {
           </div>
         )}
       </div>
+
+      {showUnlock && (
+        <UnlockModal
+          onUnlocked={() => {
+            setShowUnlock(false);
+            loadEntry();
+          }}
+          onClose={() => setShowUnlock(false)}
+        />
+      )}
     </div>
   );
 };

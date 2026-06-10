@@ -20,7 +20,7 @@ public class AuditLog
 
     [Required]
     [StringLength(16)]
-    public string Action { get; set; } = string.Empty; // create|update|delete|unlock
+    public string Action { get; set; } = string.Empty; // create|update|delete
 
     [StringLength(45)]
     public string? ActorIp { get; set; } // IPv4 or IPv6

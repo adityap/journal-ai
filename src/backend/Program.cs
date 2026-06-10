@@ -64,6 +64,7 @@ else
 // Add services
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<EntryService>();
+builder.Services.AddScoped<UnlockService>();
 builder.Services.AddSingleton<TfIdfService>();
 builder.Services.AddScoped<S3Service>();
 builder.Services.AddScoped<MediaService>();

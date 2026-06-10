@@ -15,11 +15,13 @@ namespace JournalAI.Backend.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly AuthService _authService;
+    private readonly UnlockService _unlock;
     private readonly ILogger<AuthController> _logger;
 
-    public AuthController(AuthService authService, ILogger<AuthController> logger)
+    public AuthController(AuthService authService, UnlockService unlock, ILogger<AuthController> logger)
     {
         _authService = authService;
+        _unlock = unlock;
         _logger = logger;
     }
 
@@ -148,11 +150,16 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpPost("logout")]
     [Authorize]
-    public IActionResult Logout()
+    public async Task<IActionResult> Logout()
     {
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        // Revoke any active unlock sessions so private entries re-lock on logout.
+        if (Guid.TryParse(userId, out var userGuid))
+            await _unlock.RevokeAllAsync(userGuid);
+
         _logger.LogInformation("User logged out: {UserId}", userId);
-        
+
         return Ok(new
         {
             message = "Logout successful"

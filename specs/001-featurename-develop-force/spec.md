@@ -57,6 +57,13 @@ entries with similar text (TF-IDF / cosine similarity).
 export to JSON or Markdown; JSON import that assigns ownership to the caller and
 skips duplicates (re-importing the same export is idempotent).
 
+### US7 — Keep entries private (P2)
+**As** a user, **I want** to mark entries private and have them hidden until I
+re-enter my password, **so that** someone glancing at my open session can't read
+them. **Acceptance:** private entries appear as locked placeholders in the
+timeline and detail views; entering the account password unlocks them for the
+session (1 hour, or until logout).
+
 ## Functional requirements
 
 Status legend: ✅ implemented · ◑ partial · 🚧 planned (not yet built). This list
@@ -79,12 +86,12 @@ payloads live in [`.specify/specs/001-journal-ai/specs.md`](../../.specify/specs
 - **FR-E5** ✅ List entries with pagination, filterable by date range, category, and tag, and searchable by `?q=` (case-insensitive substring over title/body), scoped to the caller.
 - **FR-E6** ✅ Get a single entry by id; a non-owner receives 403, a missing entry 404.
 - **FR-E7** ✅ Edit (PATCH) and delete are permitted only while `now ≤ read_only_after`; otherwise the server returns 403.
-- **FR-E8** ◑ An append-only audit-log row is written on create, update, delete, and import. Unlock auditing is pending FR-C2.
-- **FR-E9** 🚧 Private entries are **not yet gated**: the timeline and single-entry read currently return private entries in full to their owner. Confidentiality is stored and validated but not enforced at read time.
+- **FR-E8** ◑ An append-only audit-log row is written on create, update, delete, and import. Unlock is an account-level event recorded via structured logging (it isn't tied to a single entry, so it doesn't fit the entry-scoped audit table).
+- **FR-E9** ✅ Private entries are gated at read time: list, single-entry read, and the similarity graph return private entries **locked** (`locked:true`, content fields redacted) unless the caller presents a valid unlock token. Export is intentionally exempt (see Out of scope).
 
 ### Confidentiality & unlock
-- **FR-C1** ✅ Each entry stores a confidentiality level and protection method (`account_password`/`none`); the `unlock_sessions` data model exists.
-- **FR-C2** 🚧 `POST /api/v1/unlock` (account-password, short-lived ~1-hour session token) and the corresponding timeline gating / locked-placeholder UI are not yet implemented. (Per-entry passwords are deferred to v2.)
+- **FR-C1** ✅ Each entry stores a confidentiality level and protection method (`account_password`/`none`).
+- **FR-C2** ✅ `POST /api/v1/unlock` verifies the account password and issues an account-wide session (1-hour TTL, revoked on logout). Only a SHA-256 hash of the opaque token is stored; the client resends the raw token via the `X-Unlock-Token` header. The timeline and entry-detail views show locked placeholders with an unlock prompt. (Per-entry passwords are deferred to v2.)
 
 ### Categories & tags
 - **FR-T1** ✅ Per-user category CRUD with names unique per user; entries reference at most one category.
@@ -120,13 +127,20 @@ payloads live in [`.specify/specs/001-journal-ai/specs.md`](../../.specify/specs
 - **Entry** — id, user_id, title?, body_text?, type, confidentiality, confidentiality_method, category_id?, tags[], sentiment (score/label/model), created_at, updated_at?, read_only_after, immutable, metadata, source (`ui`/`import`/`api`), original_hash.
 - **Category** — id, user_id, name (unique per user), color, parent_id?, timestamps.
 - **AuditLog** — id, entry_id, user_id, action (`create`/`update`/`delete`/`import`/`unlock`), actor_ip, timestamp.
-- **UnlockSession** — modeled (per-entry/session unlock) but unused pending FR-C2.
+- **UnlockSession** — account-wide unlock session: id, user_id, entry_id (nullable; null = account-wide), session_token (SHA-256 hash of the opaque token), expires_at, created_at.
 - **ExportJob** — reserved for async export (FR-X3); unused.
 
 ## Out of scope / planned
 
-The 🚧-marked requirements above — private-entry unlock gating (FR-C2/FR-E9),
-GDPR account deletion (FR-A4), ZIP/media + async export and ZIP import (FR-X3),
-force-directed/exportable graphs (FR-V4), and the encryption-at-rest / rate-limiting
-/ observability NFRs — are specified but **not yet implemented**. See
-[docs/PROJECT_STATUS.md](../../docs/PROJECT_STATUS.md) for current build status.
+The 🚧-marked requirements above — GDPR account deletion (FR-A4), ZIP/media +
+async export and ZIP import (FR-X3), force-directed/exportable graphs (FR-V4),
+and the encryption-at-rest / rate-limiting / observability NFRs — are specified
+but **not yet implemented**. See [docs/PROJECT_STATUS.md](../../docs/PROJECT_STATUS.md)
+for current build status.
+
+**Export and the unlock gate:** `GET /api/v1/exports` deliberately includes the
+caller's private entries in full, even without an active unlock session — it is
+the explicit "download all of my own data" action and is already owner-authenticated.
+The spec's "confirm (and possibly re-enter password) before including private
+entries in an export" refinement is a planned enhancement, tracked here so the
+gap is explicit rather than silent.

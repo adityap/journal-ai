@@ -24,6 +24,13 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Attach the unlock-session token (if any) so the server reveals private entries.
+    // Read sessionStorage directly here to avoid a circular import with unlockClient.
+    const unlockToken = sessionStorage.getItem('unlock_token');
+    const unlockExpiry = sessionStorage.getItem('unlock_expires_at');
+    if (unlockToken && unlockExpiry && new Date(unlockExpiry).getTime() > Date.now()) {
+      config.headers['X-Unlock-Token'] = unlockToken;
+    }
     return config;
   },
   (error: AxiosError) => {

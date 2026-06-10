@@ -4,9 +4,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace JournalAI.Backend.Models;
 
 /// <summary>
-/// Unlock session model for time-limited access to private entries
-/// After entry becomes immutable, users must unlock via account password to view/edit
-/// Session expires after 1 hour or on logout
+/// Unlock session model for time-limited access to a user's private entries.
+/// The user unlocks with their account password; the session grants read access to
+/// all of their private entries until it expires (1-hour TTL) or is revoked on logout.
 /// </summary>
 public class UnlockSession
 {
@@ -16,12 +16,20 @@ public class UnlockSession
     [Required]
     public Guid UserId { get; set; }
 
-    [Required]
-    public Guid EntryId { get; set; }
+    /// <summary>
+    /// Optional entry scope. Null means an account-wide session (the MVP behavior:
+    /// one unlock covers all of the user's private entries). Reserved non-null for a
+    /// future per-entry unlock mode.
+    /// </summary>
+    public Guid? EntryId { get; set; }
 
+    /// <summary>
+    /// SHA-256 hash (hex) of the opaque session token. The raw token is returned to
+    /// the client once and never persisted, so a DB leak does not grant unlock access.
+    /// </summary>
     [Required]
-    [StringLength(255)]
-    public string SessionToken { get; set; } = string.Empty; // JWT or secure token
+    [StringLength(64)]
+    public string SessionToken { get; set; } = string.Empty;
 
     [Required]
     public DateTime ExpiresAt { get; set; } // Session TTL: 1 hour
@@ -34,5 +42,5 @@ public class UnlockSession
     public virtual User User { get; set; } = null!;
 
     [ForeignKey(nameof(EntryId))]
-    public virtual Entry Entry { get; set; } = null!;
+    public virtual Entry? Entry { get; set; }
 }

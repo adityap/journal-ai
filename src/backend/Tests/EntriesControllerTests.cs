@@ -60,7 +60,8 @@ public class EntriesControllerTests : IAsyncLifetime
         _service = new EntryService(mockLogger.Object);
 
         var mockControllerLogger = new Mock<ILogger<EntriesController>>();
-        _controller = new EntriesController(_dbContext, _service, new TfIdfService(), mockControllerLogger.Object);
+        var unlock = new UnlockService(_dbContext, new Mock<ILogger<UnlockService>>().Object);
+        _controller = new EntriesController(_dbContext, _service, new TfIdfService(), unlock, mockControllerLogger.Object);
 
         // Setup controller context with user claim.
         // The real JWT middleware maps the token's "sub" claim to ClaimTypes.NameIdentifier,
@@ -306,7 +307,7 @@ public class EntriesControllerTests : IAsyncLifetime
             Title = "Test Entry",
             BodyText = "Content",
             Type = "text",
-            Confidentiality = "private",
+            Confidentiality = "public",
             CreatedAt = DateTime.UtcNow,
             ReadOnlyAfter = DateTime.UtcNow.AddDays(1)
         };
@@ -751,7 +752,9 @@ public class EntriesControllerTests : IAsyncLifetime
     public async Task CreateEntry_WithoutJWTClaim_Returns401Unauthorized()
     {
         // Arrange
-        var controllerNoClaim = new EntriesController(_dbContext, _service, new TfIdfService(), new Mock<ILogger<EntriesController>>().Object);
+        var controllerNoClaim = new EntriesController(_dbContext, _service, new TfIdfService(),
+            new UnlockService(_dbContext, new Mock<ILogger<UnlockService>>().Object),
+            new Mock<ILogger<EntriesController>>().Object);
         controllerNoClaim.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal() } // No claims

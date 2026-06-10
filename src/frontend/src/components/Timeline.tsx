@@ -14,6 +14,8 @@ import { SentimentChart } from './SentimentChart';
 import { RelatedGraph } from './RelatedGraph';
 import { downloadExport, ExportFormat } from '../services/exportClient';
 import { importEntriesFromFile } from '../services/importClient';
+import { isUnlocked } from '../services/unlockClient';
+import { UnlockModal } from './UnlockModal';
 import { asApiError, getErrorMessage } from '../utils/errors';
 import '../styles/entry.css';
 
@@ -65,7 +67,16 @@ export const Timeline: React.FC = () => {
   const [importing, setImporting] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [showUnlock, setShowUnlock] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
+
+  const hasLockedEntries = entries.some((e) => e.locked);
+
+  const handleUnlocked = () => {
+    setShowUnlock(false);
+    setInfo('Private entries unlocked for this session.');
+    setReloadKey((k) => k + 1);
+  };
 
   const handleExport = async (format: ExportFormat) => {
     setExporting(format);
@@ -392,6 +403,15 @@ export const Timeline: React.FC = () => {
             style={{ display: 'none' }}
             aria-hidden="true"
           />
+          {hasLockedEntries && !isUnlocked() && (
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setShowUnlock(true)}
+              title="Unlock private entries with your account password"
+            >
+              🔓 Unlock
+            </button>
+          )}
           <button
             className="create-entry-btn"
             onClick={() => navigate('/entries/new')}
@@ -463,7 +483,9 @@ export const Timeline: React.FC = () => {
                 >
                   <div className="entry-header">
                     <div className="entry-header-left">
-                      <h2 className="entry-title">{entry.title || '[Untitled]'}</h2>
+                      <h2 className="entry-title">
+                        {entry.locked ? '🔒 Private entry (locked)' : entry.title || '[Untitled]'}
+                      </h2>
                       <div className="entry-meta">
                         <span className="entry-date">{formatDate(entry.createdAt)}</span>
                         <span
@@ -484,13 +506,27 @@ export const Timeline: React.FC = () => {
                     </div>
                   </div>
 
-                  {entry.bodyText && (
+                  {entry.locked ? (
                     <div className="entry-body">
-                      <p className={`entry-body-text ${entry.bodyText.length > 200 ? 'entry-body-preview' : ''}`}>
-                        {entry.bodyText.substring(0, 300)}
-                        {entry.bodyText.length > 300 ? '...' : ''}
+                      <p className="entry-body-text" style={{ color: '#888', fontStyle: 'italic' }}>
+                        This entry is private. Unlock to view its contents.{' '}
+                        <button
+                          className="action-btn"
+                          onClick={() => setShowUnlock(true)}
+                        >
+                          🔓 Unlock
+                        </button>
                       </p>
                     </div>
+                  ) : (
+                    entry.bodyText && (
+                      <div className="entry-body">
+                        <p className={`entry-body-text ${entry.bodyText.length > 200 ? 'entry-body-preview' : ''}`}>
+                          {entry.bodyText.substring(0, 300)}
+                          {entry.bodyText.length > 300 ? '...' : ''}
+                        </p>
+                      </div>
+                    )
                   )}
 
                   {entry.tags && entry.tags.length > 0 && (
@@ -521,7 +557,7 @@ export const Timeline: React.FC = () => {
                       >
                         👁️ View
                       </button>
-                      {isEditable(entry) && (
+                      {isEditable(entry) && !entry.locked && (
                         <>
                           <button
                             className="action-btn edit-btn"
@@ -570,6 +606,10 @@ export const Timeline: React.FC = () => {
             </div>
           )}
         </>
+      )}
+
+      {showUnlock && (
+        <UnlockModal onUnlocked={handleUnlocked} onClose={() => setShowUnlock(false)} />
       )}
     </div>
   );

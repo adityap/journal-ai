@@ -15,16 +15,20 @@ namespace JournalAI.Backend.Controllers;
 [Authorize]
 public class EntriesController : ControllerBase
 {
+    private const string UnlockTokenHeader = "X-Unlock-Token";
+
     private readonly AppDbContext _context;
     private readonly EntryService _entryService;
     private readonly TfIdfService _tfIdf;
+    private readonly UnlockService _unlock;
     private readonly ILogger<EntriesController> _logger;
 
-    public EntriesController(AppDbContext context, EntryService entryService, TfIdfService tfIdf, ILogger<EntriesController> logger)
+    public EntriesController(AppDbContext context, EntryService entryService, TfIdfService tfIdf, UnlockService unlock, ILogger<EntriesController> logger)
     {
         _context = context;
         _entryService = entryService;
         _tfIdf = tfIdf;
+        _unlock = unlock;
         _logger = logger;
     }
 
@@ -92,7 +96,8 @@ public class EntriesController : ControllerBase
         });
         await _context.SaveChangesAsync();
 
-        var responseDto = MapToDto(entry);
+        // The author just wrote this entry, so return it in full (never locked to its creator).
+        var responseDto = MapToDto(entry, unlocked: true);
         _logger.LogInformation("Entry created: {EntryId} by user {UserId}", entry.Id, user.Id);
 
         return CreatedAtAction(nameof(GetEntry), new { id = entry.Id }, responseDto);
@@ -156,7 +161,9 @@ public class EntriesController : ControllerBase
             .Take(perPage)
             .ToListAsync();
 
-        var items = entries.Select(MapToDto).ToList();
+        // Resolve the session unlock state once; private entries stay redacted unless unlocked.
+        var unlocked = await _unlock.IsUnlockedAsync(userGuid, Request.Headers[UnlockTokenHeader].FirstOrDefault());
+        var items = entries.Select(e => MapToDto(e, unlocked)).ToList();
 
         var result = new PagedResult<EntryResponseDto>
         {
@@ -193,6 +200,24 @@ public class EntriesController : ControllerBase
             .ToListAsync();
 
         var graph = _tfIdf.BuildSimilarityGraph(entries, clamped);
+
+        // Don't leak private entry labels through the graph: redact node titles/sentiment
+        // for locked private entries (edges and dates are kept so the structure still shows).
+        var unlocked = await _unlock.IsUnlockedAsync(userGuid, Request.Headers[UnlockTokenHeader].FirstOrDefault());
+        if (!unlocked)
+        {
+            var lockedIds = entries
+                .Where(e => string.Equals(e.Confidentiality, "private", StringComparison.OrdinalIgnoreCase))
+                .Select(e => e.Id)
+                .ToHashSet();
+            foreach (var node in graph.Nodes.Where(n => lockedIds.Contains(n.Id)))
+            {
+                node.Title = null;
+                node.SentimentLabel = null;
+                node.SentimentScore = null;
+            }
+        }
+
         return Ok(graph);
     }
 
@@ -218,7 +243,8 @@ public class EntriesController : ControllerBase
         if (entry.UserId != userGuid)
             return Forbid();
 
-        return Ok(MapToDto(entry));
+        var unlocked = await _unlock.IsUnlockedAsync(userGuid, Request.Headers[UnlockTokenHeader].FirstOrDefault());
+        return Ok(MapToDto(entry, unlocked));
     }
 
     /// <summary>
@@ -280,7 +306,8 @@ public class EntriesController : ControllerBase
 
         _logger.LogInformation("Entry updated: {EntryId} by user {UserId}", entry.Id, userGuid);
 
-        return Ok(MapToDto(entry));
+        // The caller just edited this entry, so return the updated content unredacted.
+        return Ok(MapToDto(entry, unlocked: true));
     }
 
     /// <summary>
@@ -337,22 +364,30 @@ public class EntriesController : ControllerBase
         return NoContent();
     }
 
-    private static EntryResponseDto MapToDto(Entry entry)
+    /// <summary>
+    /// Map an entry to its response DTO. A private entry that the caller has not unlocked
+    /// is returned <see cref="EntryResponseDto.Locked"/> with its content fields (title,
+    /// body, tags, sentiment) redacted to null — only non-sensitive metadata (date,
+    /// category, confidentiality) is exposed so the timeline can show a locked placeholder.
+    /// </summary>
+    private static EntryResponseDto MapToDto(Entry entry, bool unlocked)
     {
+        var locked = string.Equals(entry.Confidentiality, "private", StringComparison.OrdinalIgnoreCase) && !unlocked;
         return new EntryResponseDto
         {
             Id = entry.Id,
-            Title = entry.Title,
-            BodyText = entry.BodyText,
+            Title = locked ? null : entry.Title,
+            BodyText = locked ? null : entry.BodyText,
             Type = entry.Type,
             Confidentiality = entry.Confidentiality,
             CategoryId = entry.CategoryId,
-            Tags = entry.Tags,
-            SentimentScore = entry.SentimentScore,
-            SentimentLabel = entry.SentimentLabel,
+            Tags = locked ? null : entry.Tags,
+            SentimentScore = locked ? null : entry.SentimentScore,
+            SentimentLabel = locked ? null : entry.SentimentLabel,
             CreatedAt = entry.CreatedAt,
             ReadOnlyAfter = entry.ReadOnlyAfter,
-            Immutable = entry.Immutable
+            Immutable = entry.Immutable,
+            Locked = locked
         };
     }
 }

@@ -44,7 +44,8 @@ public class AuthControllerTests : IDisposable
         _mockConfig.Setup(x => x["Jwt:ExpiryMinutes"]).Returns("1440");
 
         _authService = new AuthService(_context, _mockConfig.Object, _mockAuthLogger.Object);
-        _authController = new AuthController(_authService, _mockControllerLogger.Object);
+        var unlock = new UnlockService(_context, new Mock<ILogger<UnlockService>>().Object);
+        _authController = new AuthController(_authService, unlock, _mockControllerLogger.Object);
     }
 
     [Fact]
@@ -159,7 +160,7 @@ public class AuthControllerTests : IDisposable
     }
 
     [Fact]
-    public void Logout_WhenAuthenticated_Returns200Ok()
+    public async Task Logout_WhenAuthenticated_Returns200Ok()
     {
         var userId = Guid.NewGuid();
         var claims = new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) };
@@ -168,7 +169,7 @@ public class AuthControllerTests : IDisposable
         _authController.ControllerContext = new ControllerContext();
         _authController.ControllerContext.HttpContext = new DefaultHttpContext { User = principal };
 
-        var result = _authController.Logout();
+        var result = await _authController.Logout();
 
         var okResult = Assert.IsType<OkObjectResult>(result);
         Assert.Equal(200, okResult.StatusCode);

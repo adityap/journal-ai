@@ -115,6 +115,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
 
+    // Drop any unlock session so private entries re-lock immediately.
+    sessionStorage.removeItem('unlock_token');
+    sessionStorage.removeItem('unlock_expires_at');
+
     // Remove authorization header
     delete apiClient.defaults.headers.common['Authorization'];
   };

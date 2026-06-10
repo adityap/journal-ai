@@ -18,6 +18,8 @@ export interface Entry {
   createdAt: string;
   readOnlyAfter: string;
   immutable: boolean;
+  /** True for a private entry the caller hasn't unlocked; content fields come back empty. */
+  locked?: boolean;
 }
 
 export interface CreateEntryRequest {

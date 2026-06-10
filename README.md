@@ -16,7 +16,7 @@ sentiment analysis, and entry visualizations.
 
 - Create journal entries with text and attached media (images/video via S3/MinIO)
 - Organize entries with tags and user-defined categories (per-user CRUD, unique names)
-- Public / Private confidentiality levels
+- Public / Private confidentiality levels, with private entries gated at read time — they appear locked (content redacted) in the timeline, entry view, and similarity graph until you unlock with your account password (`POST /api/v1/unlock`, 1-hour session, revoked on logout)
 - Same-day edit/delete enforcement (entries become immutable after their creation day, in the user's timezone)
 - Search entries by title/body text (case-insensitive substring), combinable with date/category/tag filters
 - Export all your entries as JSON or Markdown (synchronous download), and import entries back from a JSON export (idempotent — re-importing skips duplicates)
@@ -24,7 +24,7 @@ sentiment analysis, and entry visualizations.
 - Sentiment trend chart, a category/tag mind-map, and a TF-IDF text-similarity "Related" graph (all SVG-based)
 - JWT authentication (register / login / logout), bcrypt password hashing (≥12 rounds)
 - `no_training_use` flag defaulted on every entry
-- Audit-log row written on entry creation
+- Audit-log row written on entry create / update / delete / import
 - Async thumbnail generation for uploaded media (Hangfire)
 
 ### 🚧 Planned / not yet implemented
@@ -35,7 +35,8 @@ These are designed in the spec (and some have database tables reserved) but have
 - Ranked/stemmed full-text search (current search is a case-insensitive substring match over title/body)
 - ZIP export with media and async/background export jobs — `export_jobs` table is reserved for these (JSON/Markdown export and JSON import ship synchronously today)
 - Force-directed graph layout (the TF-IDF "Related" graph currently uses a deterministic circular layout, no graph library)
-- Account-based unlock sessions for private entries (1-hour TTL) — `unlock_sessions` table exists, no endpoint
+- Per-entry passwords for private entries (current unlock is account-password, account-wide; deferred to v2)
+- Requiring unlock/confirmation before private entries are included in an export (export currently returns the owner's private entries in full)
 - GDPR data export & account deletion
 - TF-IDF / similarity-based mind-map graph (current mind-map is simple category/tag grouping)
 - Rate limiting, encryption at rest, and an observability stack (OpenTelemetry / Prometheus / Grafana / Serilog)
@@ -146,6 +147,7 @@ Swagger UI (development only): http://localhost:5000/swagger
 | DELETE | `/api/v1/categories/{id}` | Delete category (clears entry references) |
 | GET | `/api/v1/exports?format=json\|markdown` | Download all your entries as a file |
 | POST | `/api/v1/imports` | Import entries from a JSON export (idempotent; assigns ownership to caller) |
+| POST | `/api/v1/unlock` | Unlock private entries for a session (account password; returns `X-Unlock-Token`) |
 | POST | `/api/v1/media/initiate` | Get presigned upload URL |
 | POST | `/api/v1/media/complete` | Finalize upload |
 | GET | `/api/v1/media` | List media (paginated) |
@@ -154,9 +156,9 @@ Swagger UI (development only): http://localhost:5000/swagger
 | POST | `/api/v1/media/{mediaId}/associate-entry/{entryId}` | Link media to entry |
 | GET | `/health` | Health check |
 
-> The `/unlock` and `/mindmap` endpoints described in the original spec are
-> **not implemented yet** (see Planned, above). The relationship mind-map is
-> served by `GET /api/v1/entries/graph` instead.
+> The relationship mind-map is served by `GET /api/v1/entries/graph` rather than
+> the `/mindmap` path in the original spec. Reads accept an optional
+> `X-Unlock-Token` header (from `/unlock`) to reveal the caller's private entries.
 
 The detailed OpenAPI spec lives at
 [`.specify/specs/001-journal-ai/openapi.yaml`](.specify/specs/001-journal-ai/openapi.yaml)
@@ -172,7 +174,7 @@ Core tables (created via EF Core; `EnsureCreated` in dev):
 - **media** — images/videos with S3 references and thumbnails
 - **audit_logs** — mutation log (currently written on entry creation)
 - **export_jobs** — reserved for the planned async export feature (unused)
-- **unlock_sessions** — reserved for the planned private-entry unlock feature (unused)
+- **unlock_sessions** — backs the private-entry unlock feature (account-wide sessions; `entry_id` nullable, token stored hashed)
 
 See [`.specify/specs/001-journal-ai/data-model.md`](.specify/specs/001-journal-ai/data-model.md) for the full intended schema.
 
