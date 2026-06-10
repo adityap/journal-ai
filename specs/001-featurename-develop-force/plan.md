@@ -14,7 +14,7 @@
 - **Language/Runtime**: C# / .NET 8 (ASP.NET Core) backend; React 18 + TypeScript + Vite frontend
 - **Primary dependencies**: EF Core 8, Hangfire (in-memory), AWSSDK.S3, SixLabors.ImageSharp, BCrypt.Net, JWT bearer
 - **Storage**: SQLite (dev) / PostgreSQL (prod); S3-compatible object storage (MinIO dev / AWS S3 prod) for media
-- **Testing**: xUnit (backend, 113 tests); frontend type-check + ESLint (no unit-test runner configured)
+- **Testing**: xUnit (backend, 124 tests); frontend type-check + ESLint (no unit-test runner configured)
 - **Project type**: web (separate backend API + SPA frontend under `src/`)
 - **Auth**: JWT (HS256), `Jwt:Key` config; `sub`/`email` claims mapped to `ClaimTypes.NameIdentifier`/`Email`
 
@@ -31,7 +31,7 @@ src/
 - [x] Auth: passwords hashed with bcrypt (≥12 rounds); JWT with expiry
 - [x] Per-user data isolation enforced in controllers
 - [x] Audit logging on entry creation
-- [~] Test coverage: backend well-covered (113 tests); frontend has no unit-test runner
+- [~] Test coverage: backend well-covered (124 tests); frontend has no unit-test runner
 - [ ] Rate limiting — **not implemented** (planned)
 - [ ] Encryption at rest — **not implemented** (planned)
 - [ ] Broader audit logging (update/delete) — partial

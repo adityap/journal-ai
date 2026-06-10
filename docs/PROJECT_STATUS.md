@@ -39,10 +39,11 @@ issues. Older status docs live in [`archive/`](archive/) and are not maintained.
   (GHSA-rxmq-m78w-7wmc) remains and is unpatched in all of 3.x. The fix is in
   4.x, which is a major version with breaking API changes and a license-tier
   consideration (Six Labors Split License) — deferred as a deliberate decision.
-- **`spec.md` is an unfilled template** — `specs/001-featurename-develop-force/spec.md`
-  still contains placeholder text; the real requirements were never written up.
-- The `tasks.md` in that spec folder marks everything complete; treat it as a
-  historical task log, not a guarantee of current behavior.
+- The `tasks.md` in `specs/001-featurename-develop-force/` marks everything
+  complete; treat it as a historical task log, not a guarantee of current
+  behavior. (`spec.md` and `plan.md` in that folder are filled in and kept
+  accurate; the canonical deep-dive spec lives under
+  [`.specify/specs/001-journal-ai/`](../.specify/specs/001-journal-ai/).)
 
 ## Conventions worth knowing
 
