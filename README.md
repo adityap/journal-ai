@@ -19,7 +19,7 @@ sentiment analysis, and entry visualizations.
 - Public / Private confidentiality levels
 - Same-day edit/delete enforcement (entries become immutable after their creation day, in the user's timezone)
 - Search entries by title/body text (case-insensitive substring), combinable with date/category/tag filters
-- Export all your entries as JSON or Markdown (synchronous download)
+- Export all your entries as JSON or Markdown (synchronous download), and import entries back from a JSON export (idempotent — re-importing skips duplicates)
 - Client-side sentiment analysis (keyword-based; no entry text is sent to a third party for analysis)
 - Sentiment trend chart, a category/tag mind-map, and a TF-IDF text-similarity "Related" graph (all SVG-based)
 - JWT authentication (register / login / logout), bcrypt password hashing (≥12 rounds)
@@ -33,7 +33,7 @@ These are designed in the spec (and some have database tables reserved) but have
 **no working endpoint yet**:
 
 - Ranked/stemmed full-text search (current search is a case-insensitive substring match over title/body)
-- ZIP export with media, bulk import, and async/background export jobs — `export_jobs` table is reserved for these (JSON/Markdown export ships synchronously today)
+- ZIP export with media and async/background export jobs — `export_jobs` table is reserved for these (JSON/Markdown export and JSON import ship synchronously today)
 - Force-directed graph layout (the TF-IDF "Related" graph currently uses a deterministic circular layout, no graph library)
 - Account-based unlock sessions for private entries (1-hour TTL) — `unlock_sessions` table exists, no endpoint
 - GDPR data export & account deletion
@@ -145,6 +145,7 @@ Swagger UI (development only): http://localhost:5000/swagger
 | PATCH | `/api/v1/categories/{id}` | Update category |
 | DELETE | `/api/v1/categories/{id}` | Delete category (clears entry references) |
 | GET | `/api/v1/exports?format=json\|markdown` | Download all your entries as a file |
+| POST | `/api/v1/imports` | Import entries from a JSON export (idempotent; assigns ownership to caller) |
 | POST | `/api/v1/media/initiate` | Get presigned upload URL |
 | POST | `/api/v1/media/complete` | Finalize upload |
 | GET | `/api/v1/media` | List media (paginated) |
@@ -153,8 +154,9 @@ Swagger UI (development only): http://localhost:5000/swagger
 | POST | `/api/v1/media/{mediaId}/associate-entry/{entryId}` | Link media to entry |
 | GET | `/health` | Health check |
 
-> The `/unlock`, `/exports`, `/import`, and `/mindmap` endpoints described in the
-> original spec are **not implemented yet** (see Planned, above).
+> The `/unlock` and `/mindmap` endpoints described in the original spec are
+> **not implemented yet** (see Planned, above). The relationship mind-map is
+> served by `GET /api/v1/entries/graph` instead.
 
 The detailed OpenAPI spec lives at
 [`.specify/specs/001-journal-ai/openapi.yaml`](.specify/specs/001-journal-ai/openapi.yaml)

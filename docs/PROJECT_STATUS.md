@@ -11,7 +11,7 @@ issues. Older status docs live in [`archive/`](archive/) and are not maintained.
 | Area | Status | How to check |
 |------|--------|--------------|
 | Backend build | ✅ 0 errors | `dotnet build src/backend/JournalAI.csproj` |
-| Backend tests | ✅ 94 / 94 passing | `dotnet test src/backend/JournalAI.Tests.csproj` |
+| Backend tests | ✅ 124 / 124 passing | `dotnet test src/backend/JournalAI.Tests.csproj` |
 | Frontend type-check | ✅ 0 errors | `npx tsc --noEmit` (in `src/frontend`) |
 | Frontend build | ✅ passing | `npm run build` (in `src/frontend`) |
 
@@ -26,6 +26,11 @@ issues. Older status docs live in [`archive/`](archive/) and are not maintained.
 - **Media** — presigned S3/MinIO upload, metadata, async thumbnail generation
   (Hangfire), association with entries.
 - **Visualizations** — list, mindmap, and sentiment-trend views.
+- **Export / import** — synchronous JSON/Markdown export of all your entries, and
+  JSON import (`POST /api/v1/imports`). Import is defensive: ownership is forced
+  to the caller (file-supplied ids ignored), foreign/unknown `categoryId`s are
+  dropped, unknown confidentiality defaults to `private`, and duplicate entries
+  (same title+body+createdAt hash) are skipped so re-importing is idempotent.
 
 ## Known issues / follow-ups
 

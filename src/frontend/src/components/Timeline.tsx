@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   listEntries,
@@ -13,6 +13,7 @@ import { MindmapView } from './MindmapView';
 import { SentimentChart } from './SentimentChart';
 import { RelatedGraph } from './RelatedGraph';
 import { downloadExport, ExportFormat } from '../services/exportClient';
+import { importEntriesFromFile } from '../services/importClient';
 import { asApiError, getErrorMessage } from '../utils/errors';
 import '../styles/entry.css';
 
@@ -61,6 +62,10 @@ export const Timeline: React.FC = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [info, setInfo] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = async (format: ExportFormat) => {
     setExporting(format);
@@ -71,6 +76,31 @@ export const Timeline: React.FC = () => {
       setError(getErrorMessage(err, 'Export failed'));
     } finally {
       setExporting(null);
+    }
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset the input so picking the same file again re-triggers onChange.
+    e.target.value = '';
+    if (!file) return;
+
+    setImporting(true);
+    setError(null);
+    setInfo(null);
+    try {
+      const result = await importEntriesFromFile(file);
+      const parts = [`Imported ${result.imported}`];
+      if (result.skippedDuplicates > 0) parts.push(`skipped ${result.skippedDuplicates} duplicate(s)`);
+      if (result.failed > 0) parts.push(`${result.failed} failed`);
+      setInfo(parts.join(', ') + '.');
+      // Reload the list so newly imported entries appear.
+      setPage(1);
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Import failed'));
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -114,7 +144,7 @@ export const Timeline: React.FC = () => {
     };
 
     fetchEntries();
-  }, [page, debouncedSearch, navigate]);
+  }, [page, debouncedSearch, navigate, reloadKey]);
 
   const handleEdit = (entryId: string) => {
     navigate(`/entries/${entryId}/edit`);
@@ -347,6 +377,22 @@ export const Timeline: React.FC = () => {
             {exporting === 'markdown' ? 'Exporting…' : '⬇ Markdown'}
           </button>
           <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => importInputRef.current?.click()}
+            disabled={importing}
+            title="Import entries from a JSON export"
+          >
+            {importing ? 'Importing…' : '⬆ Import'}
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleImportFile}
+            style={{ display: 'none' }}
+            aria-hidden="true"
+          />
+          <button
             className="create-entry-btn"
             onClick={() => navigate('/entries/new')}
           >
@@ -375,6 +421,12 @@ export const Timeline: React.FC = () => {
       {error && (
         <div className="timeline-status error" role="alert">
           {error}
+        </div>
+      )}
+
+      {info && (
+        <div className="timeline-status" role="status">
+          {info}
         </div>
       )}
 
