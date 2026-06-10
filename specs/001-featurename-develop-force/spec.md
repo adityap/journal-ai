@@ -110,7 +110,8 @@ payloads live in [`.specify/specs/001-journal-ai/specs.md`](../../.specify/specs
 ### Export & import
 - **FR-X1** ✅ Synchronous export of all the caller's entries as JSON or Markdown (`GET /api/v1/exports?format=`).
 - **FR-X2** ✅ JSON import (`POST /api/v1/imports`) accepts the export shape; ownership is forced to the caller (file-supplied ids ignored), foreign/unknown `categoryId` is dropped, and duplicates (hash of title+body+createdAt) are skipped so re-importing is idempotent. Batch capped at 5000 entries.
-- **FR-X3** 🚧 ZIP export with media, async/background export jobs (the reserved `export_jobs` table), and ZIP import are not yet implemented.
+- **FR-X3** ✅ Async export jobs (`POST /api/v1/exports/jobs`, backed by the `export_jobs` table + Hangfire): a background worker builds the artifact and stores it in the blob store. `zip` bundles `entries.json` + `entries.md` + media; `json`/`markdown` produce a single file. Poll `GET /api/v1/exports/jobs/{id}` and download the finished artifact from `GET /api/v1/exports/jobs/{id}/download` (streamed through the authenticated endpoint, not a public URL).
+- **FR-X4** 🚧 ZIP *import* (round-tripping a media-inclusive export) is not yet implemented.
 
 ## Non-functional requirements
 
@@ -128,14 +129,13 @@ payloads live in [`.specify/specs/001-journal-ai/specs.md`](../../.specify/specs
 - **Category** — id, user_id, name (unique per user), color, parent_id?, timestamps.
 - **AuditLog** — id, entry_id, user_id, action (`create`/`update`/`delete`/`import`/`unlock`), actor_ip, timestamp.
 - **UnlockSession** — account-wide unlock session: id, user_id, entry_id (nullable; null = account-wide), session_token (SHA-256 hash of the opaque token), expires_at, created_at.
-- **ExportJob** — reserved for async export (FR-X3); unused.
+- **ExportJob** — async export job: id, user_id, scope?, format (`json`/`markdown`/`zip`), status (`queued`/`running`/`completed`/`failed`), download_url (blob-store object key), created_at, completed_at, error_message.
 
 ## Out of scope / planned
 
-The 🚧-marked requirements above — GDPR account deletion (FR-A4), ZIP/media +
-async export and ZIP import (FR-X3), force-directed/exportable graphs (FR-V4),
-and the encryption-at-rest / rate-limiting / observability NFRs — are specified
-but **not yet implemented**. See [docs/PROJECT_STATUS.md](../../docs/PROJECT_STATUS.md)
+The 🚧-marked requirements above — GDPR account deletion (FR-A4), ZIP import
+(FR-X4), force-directed/exportable graphs (FR-V4), and the encryption-at-rest /
+rate-limiting / observability NFRs — are specified but **not yet implemented**. See [docs/PROJECT_STATUS.md](../../docs/PROJECT_STATUS.md)
 for current build status.
 
 **Export and the unlock gate:** `GET /api/v1/exports` deliberately includes the

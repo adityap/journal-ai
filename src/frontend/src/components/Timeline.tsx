@@ -12,7 +12,14 @@ import {
 import { MindmapView } from './MindmapView';
 import { SentimentChart } from './SentimentChart';
 import { RelatedGraph } from './RelatedGraph';
-import { downloadExport, ExportFormat } from '../services/exportClient';
+import {
+  downloadExport,
+  ExportFormat,
+  createExportJob,
+  listExportJobs,
+  downloadExportJob,
+  ExportJob,
+} from '../services/exportClient';
 import { importEntriesFromFile } from '../services/importClient';
 import { isUnlocked } from '../services/unlockClient';
 import { UnlockModal } from './UnlockModal';
@@ -68,9 +75,46 @@ export const Timeline: React.FC = () => {
   const [info, setInfo] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [showUnlock, setShowUnlock] = useState(false);
+  const [exportJobs, setExportJobs] = useState<ExportJob[]>([]);
+  const [showJobs, setShowJobs] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const hasLockedEntries = entries.some((e) => e.locked);
+  const hasPendingJobs = exportJobs.some((j) => j.status === 'queued' || j.status === 'running');
+
+  const refreshJobs = async () => {
+    try {
+      setExportJobs(await listExportJobs());
+    } catch {
+      /* non-fatal: the panel just won't update */
+    }
+  };
+
+  const handleCreateZipJob = async () => {
+    setError(null);
+    setShowJobs(true);
+    try {
+      await createExportJob('zip');
+      await refreshJobs();
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not start export'));
+    }
+  };
+
+  const handleDownloadJob = async (job: ExportJob) => {
+    try {
+      await downloadExportJob(job);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Download failed'));
+    }
+  };
+
+  // While the panel is open and any job is still running, poll for status.
+  useEffect(() => {
+    if (!showJobs || !hasPendingJobs) return;
+    const handle = setInterval(refreshJobs, 3000);
+    return () => clearInterval(handle);
+  }, [showJobs, hasPendingJobs]);
 
   const handleUnlocked = () => {
     setShowUnlock(false);
@@ -389,6 +433,20 @@ export const Timeline: React.FC = () => {
           </button>
           <button
             className="btn btn-secondary btn-sm"
+            onClick={handleCreateZipJob}
+            title="Export a ZIP bundling entries and media (runs in the background)"
+          >
+            ⬇ ZIP (media)
+          </button>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => { setShowJobs((v) => !v); if (!showJobs) refreshJobs(); }}
+            title="Show export jobs"
+          >
+            {showJobs ? 'Hide jobs' : 'Export jobs'}
+          </button>
+          <button
+            className="btn btn-secondary btn-sm"
             onClick={() => importInputRef.current?.click()}
             disabled={importing}
             title="Import entries from a JSON export"
@@ -420,6 +478,48 @@ export const Timeline: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {showJobs && (
+        <div
+          style={{
+            border: '1px solid #e0e0e0', borderRadius: '6px', padding: '0.75rem 1rem',
+            margin: '0 0 1rem', background: '#fafafa',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <strong>Export jobs</strong>
+            <button className="btn btn-secondary btn-sm" onClick={refreshJobs}>↻ Refresh</button>
+          </div>
+          {exportJobs.length === 0 ? (
+            <p style={{ margin: 0, color: '#777', fontSize: '0.9rem' }}>No export jobs yet.</p>
+          ) : (
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {exportJobs.map((job) => (
+                <li
+                  key={job.id}
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '0.4rem 0', borderTop: '1px solid #eee', fontSize: '0.9rem',
+                  }}
+                >
+                  <span>
+                    {job.format.toUpperCase()} ·{' '}
+                    {job.status === 'completed' ? '✅ ready'
+                      : job.status === 'failed' ? `❌ ${job.error || 'failed'}`
+                      : `⏳ ${job.status}`}{' '}
+                    <span style={{ color: '#999' }}>{formatDate(job.createdAt)}</span>
+                  </span>
+                  {job.ready && (
+                    <button className="btn btn-primary btn-sm" onClick={() => handleDownloadJob(job)}>
+                      ⬇ Download
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <input
         type="search"

@@ -11,7 +11,7 @@ issues. Older status docs live in [`archive/`](archive/) and are not maintained.
 | Area | Status | How to check |
 |------|--------|--------------|
 | Backend build | ✅ 0 errors | `dotnet build src/backend/JournalAI.csproj` |
-| Backend tests | ✅ 136 / 136 passing | `dotnet test src/backend/JournalAI.Tests.csproj` |
+| Backend tests | ✅ 145 / 145 passing | `dotnet test src/backend/JournalAI.Tests.csproj` |
 | Frontend type-check | ✅ 0 errors | `npx tsc --noEmit` (in `src/frontend`) |
 | Frontend build | ✅ passing | `npm run build` (in `src/frontend`) |
 
@@ -38,6 +38,11 @@ issues. Older status docs live in [`archive/`](archive/) and are not maintained.
   to the caller (file-supplied ids ignored), foreign/unknown `categoryId`s are
   dropped, unknown confidentiality defaults to `private`, and duplicate entries
   (same title+body+createdAt hash) are skipped so re-importing is idempotent.
+- **Async export jobs** — `POST /api/v1/exports/jobs` queues a Hangfire job that
+  builds the artifact and stores it in the blob store; `zip` bundles
+  `entries.json` + `entries.md` + media. Poll `GET /exports/jobs/{id}` and
+  download via `GET /exports/jobs/{id}/download` (streamed through the
+  authenticated endpoint). Requires the blob store (MinIO/S3) to be running.
 
 ## Known issues / follow-ups
 

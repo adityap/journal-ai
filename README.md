@@ -20,6 +20,7 @@ sentiment analysis, and entry visualizations.
 - Same-day edit/delete enforcement (entries become immutable after their creation day, in the user's timezone)
 - Search entries by title/body text (case-insensitive substring), combinable with date/category/tag filters
 - Export all your entries as JSON or Markdown (synchronous download), and import entries back from a JSON export (idempotent — re-importing skips duplicates)
+- Async export jobs (`POST /api/v1/exports/jobs`, Hangfire-backed) that produce a downloadable artifact in the background — `zip` bundles `entries.json` + `entries.md` + media files (requires the blob store)
 - Client-side sentiment analysis (keyword-based; no entry text is sent to a third party for analysis)
 - Sentiment trend chart, a category/tag mind-map, and a TF-IDF text-similarity "Related" graph (all SVG-based)
 - JWT authentication (register / login / logout), bcrypt password hashing (≥12 rounds)
@@ -33,7 +34,7 @@ These are designed in the spec (and some have database tables reserved) but have
 **no working endpoint yet**:
 
 - Ranked/stemmed full-text search (current search is a case-insensitive substring match over title/body)
-- ZIP export with media and async/background export jobs — `export_jobs` table is reserved for these (JSON/Markdown export and JSON import ship synchronously today)
+- ZIP *import* (round-tripping a media-inclusive ZIP export back in) — export side ships today via async jobs
 - Force-directed graph layout (the TF-IDF "Related" graph currently uses a deterministic circular layout, no graph library)
 - Per-entry passwords for private entries (current unlock is account-password, account-wide; deferred to v2)
 - Requiring unlock/confirmation before private entries are included in an export (export currently returns the owner's private entries in full)
@@ -147,6 +148,9 @@ Swagger UI (development only): http://localhost:5000/swagger
 | DELETE | `/api/v1/categories/{id}` | Delete category (clears entry references) |
 | GET | `/api/v1/exports?format=json\|markdown` | Download all your entries as a file |
 | POST | `/api/v1/imports` | Import entries from a JSON export (idempotent; assigns ownership to caller) |
+| POST | `/api/v1/exports/jobs` | Queue an async export job (`json`/`markdown`/`zip`; zip bundles media) |
+| GET | `/api/v1/exports/jobs` · `/jobs/{id}` | List / poll export job status |
+| GET | `/api/v1/exports/jobs/{id}/download` | Download a completed export artifact |
 | POST | `/api/v1/unlock` | Unlock private entries for a session (account password; returns `X-Unlock-Token`) |
 | POST | `/api/v1/media/initiate` | Get presigned upload URL |
 | POST | `/api/v1/media/complete` | Finalize upload |
@@ -173,7 +177,7 @@ Core tables (created via EF Core; `EnsureCreated` in dev):
 - **categories** — user-defined entry categories (per-user CRUD; optional reference per entry)
 - **media** — images/videos with S3 references and thumbnails
 - **audit_logs** — mutation log (currently written on entry creation)
-- **export_jobs** — reserved for the planned async export feature (unused)
+- **export_jobs** — backs async export jobs (status + blob-store object key for the finished artifact)
 - **unlock_sessions** — backs the private-entry unlock feature (account-wide sessions; `entry_id` nullable, token stored hashed)
 
 See [`.specify/specs/001-journal-ai/data-model.md`](.specify/specs/001-journal-ai/data-model.md) for the full intended schema.
